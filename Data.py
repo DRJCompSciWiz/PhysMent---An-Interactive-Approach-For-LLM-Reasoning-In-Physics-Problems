@@ -27,7 +27,7 @@ class Data:
         whole_scene_summary():
             Collects data from multiple variations of a scene and writes an overall summary to a .txt file.
     """
-    def __init__(self, scene_id, log_json_path, scene: Scene, experiment: Experiment, iteration: int):
+    def __init__(self, scene_id, log_json_path, scene: Scene, experiment: Experiment, iteration: int, results=None):
         """
         Initializes the Data object with the provided scene, log path, and experiment details.
 
@@ -43,6 +43,7 @@ class Data:
         self.scene = scene
         self.experiment = experiment
         self.iteration = iteration
+        self.results = results
         self.summary = []  # Initialize an empty list to store summaries
         self.agent_type = self.experiment.name_of_agent  # Get the agent type from the experiment
         full_path = os.path.abspath(__file__)
@@ -86,53 +87,63 @@ class Data:
         Returns:
             None
         """
-        if self.scene_number in range (1, 16):
+        try:
+            scene_num = int(self.scene_number)
+        except (TypeError, ValueError):
+            scene_num = -1
+
+        if scene_num in range (1, 16):
             self.scene_type = "Easy Single Physics Concepts"
             reasoning_score, groundedness_score, action_validity_score, generalization_score = 0.2, 0.4, 0.3, 0.1
-        elif self.scene_number in range(16, 21):
+        elif scene_num in range(16, 21):
             self.scene_type = "Easy Single Physics Concepts With Focus On Creating Objects"
             reasoning_score, groundedness_score, action_validity_score, generalization_score = 0.3, 0.3, 0.3, 0.1
-        elif self.scene_number in range(21, 26):
+        elif scene_num in range(21, 26):
             self.scene_type = "Easy Single Physics Concepts With Focus On Finding Hidden Objects"
             reasoning_score, groundedness_score, action_validity_score, generalization_score = 0.35, 0.3, 0.25, 0.1
-        elif self.scene_number in range(26, 41):
+        elif scene_num in range(26, 41):
             self.scene_type = "Hard Single Physics Concepts"
             reasoning_score, groundedness_score, action_validity_score, generalization_score = 0.45, 0.25, 0.2, 0.1
-        elif self.scene_number in range(41, 46):
+        elif scene_num in range(41, 46):
             self.scene_type = "Hard Single Physics Concepts With Focus On Creating Objects"
             reasoning_score, groundedness_score, action_validity_score, generalization_score = 0.4, 0.25, 0.25, 0.1
-        elif self.scene_number in range(46, 51):
+        elif scene_num in range(46, 51):
             self.scene_type = "Hard Single Physics Concepts With Focus On Finding Hidden Objects"
             reasoning_score, groundedness_score, action_validity_score, generalization_score = 0.45, 0.3, 0.15, 0.1
-        elif self.scene_number in range(51, 66):
+        elif scene_num in range(51, 66):
             self.scene_type = "Easy Multi Physics Concepts"
             reasoning_score, groundedness_score, action_validity_score, generalization_score = 0.35, 0.3, 0.25, 0.1
-        elif self.scene_number in range(66, 71):
+        elif scene_num in range(66, 71):
             self.scene_type = "Easy Multi Physics Concepts With Focus On Creating Objects"
             reasoning_score, groundedness_score, action_validity_score, generalization_score = 0.4, 0.25, 0.25, 0.1
-        elif self.scene_number in range(71, 76):
+        elif scene_num in range(71, 76):
             self.scene_type = "Easy Multi Physics Concepts With Focus On Finding Hidden Objects"
             reasoning_score, groundedness_score, action_validity_score, generalization_score = 0.45, 0.3, 0.15, 0.1
-        elif self.scene_number in range(76, 91):
+        elif scene_num in range(76, 91):
             self.scene_type = "Hard Multi Physics Concepts"
             reasoning_score, groundedness_score, action_validity_score, generalization_score = 0.5, 0.2, 0.15, 0.15
-        elif self.scene_number in range(91, 96):
+        elif scene_num in range(91, 96):
             self.scene_type = "Hard Multi Physics Concepts With Focus On Creating Objects"
             reasoning_score, groundedness_score, action_validity_score, generalization_score = 0.45, 0.2, 0.2, 0.15
-        elif self.scene_number in range(96, 101):
+        elif scene_num in range(96, 101):
             self.scene_type = "Hard Multi Physics Concepts With Focus On Finding Hidden Objects"
             reasoning_score, groundedness_score, action_validity_score, generalization_score = 0.5, 0.25, 0.1, 0.15
-        elif self.scene_number in range(101, 126):
+        elif scene_num in range(101, 126):
             self.scene_type = "Creating/Deleting Objects"
             reasoning_score, groundedness_score, action_validity_score, generalization_score = 0.2, 0.3, 0.4, 0.1
-        elif self.scene_number in range(126, 151):
+        elif scene_num in range(126, 151):
             self.scene_type = "Finding Hidden Objects"
             reasoning_score, groundedness_score, action_validity_score, generalization_score = 0.4, 0.35, 0.15, 0.1
-        elif self.scene_number in range(151, 159):
+        elif scene_num in range(151, 159):
             self.scene_type = "Toy Scene: Checking Simulator's and Overall Pipeline Functionality"
             reasoning_score, groundedness_score, action_validity_score, generalization_score = 0.25, 0.25, 0.25, 0.25
+        else:
+            self.scene_type = "Unknown"
+            reasoning_score = groundedness_score = action_validity_score = generalization_score = 0.0
         
-        results = self.experiment.run_experiment()
+        if self.results is None:
+            raise ValueError("Experiment results not provided; pass results to Data to avoid re-running.")
+        results = self.results
         num_tool_calls = results['num_tool_calls']
         tool_usage = results['tool_usage']
 

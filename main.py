@@ -112,6 +112,7 @@ def main():
     and saves them to a JSON file.
     """
     parser = argparse.ArgumentParser()
+    # TODO: This enable_python_tool is randomly set twice (once here once in Scene). WTF?? Fix this
     parser.add_argument("--enable-python-tool", action="store_true", help="Enable the Python evaluation tool")
     args = parser.parse_args()
     args.enable_python_tool = random.choice([True, False])
@@ -126,7 +127,7 @@ def main():
     scene_ids = ["151"]  # Replace with actual scene IDs
 
     # Set the agent type (You can modify this to initialize different agents)
-    agent_types = ["LlamaAgent"]  # Example: you can change this dynamically to switch agents
+    agent_types = ["OpenAIAgentGPT4omini"]  # Example: you can change this dynamically to switch agents
 
     iterations = [5]  # Example iterations, can be modified as needed
 
@@ -225,7 +226,7 @@ def main():
                 os.system('cls' if os.name == 'nt' else 'clear')
                 experiment.simulator.reset_sim()
 
-                data = Data(scene_id, log_json_path=json_logger, scene=scene, experiment=experiment, iteration=iteration)
+                data = Data(scene_id, log_json_path=json_logger.json_path, scene=scene, experiment=experiment, iteration=iteration, results=results)
                 data.summarize_scenes()
                 data.whole_scene_summary()
 

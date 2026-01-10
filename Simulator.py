@@ -6,9 +6,9 @@ import time
 import os
 import xml.etree.ElementTree as ET
 import logging
-import pywin 
-import win32gui
-import win32con
+# import pywin 
+# import win32gui
+# import win32con
 from typing import Dict, Any, Optional
 
 # Configure logging
