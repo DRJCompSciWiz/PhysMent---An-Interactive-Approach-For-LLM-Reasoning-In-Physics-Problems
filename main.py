@@ -170,12 +170,12 @@ def main():
         for iteration in iterations:
             for scene_id in scene_ids:
                 # Run the experiment by first building experiment.py which initializes the scene and simulator
-                experiment = Experiment(scene_id, agent=agent, max_iterations=iteration, enable_python_tool=args.enable_python_tool)
+                experiment = Experiment(scene_id, agent=agent, max_iterations=iteration, enable_python_tool=args.enable_python_tool, agent_label=agent_type)
                 scene = experiment.scene  # Initialize the scene from experiments
                 method = scene_to_method.get(scene_id, "zero_shot")
                 scene.set_prompt_method(method)
                 scene_number = scene.scene_number
-                json_logger = JsonLogger(os.path.join(base_dir, f"{agent_type}", f"{scene_number}", f"{scene_id}", f"summary_and_error_analysis_of_{agent_type}_for_{scene_id}.json"))
+                json_logger = JsonLogger(os.path.join(base_dir, f"{agent_type}", f"{scene_number}", f"log_{experiment.timestamp}.json"))
 
 
                 try:
@@ -198,37 +198,11 @@ def main():
                 else:
                     print("\nNo answer was provided by the LLM.")
                 
-                result_dir = os.path.join(base_dir, f"Scene{scene_number}", f"{agent_type}")
-                if not os.path.exists(result_dir):
-                    os.makedirs(result_dir)
-
-                log_filename = f"error_logging_scene_{scene_number}_{agent_type}.txt"
-                log_path = os.path.join(result_dir, log_filename)
-
-                log_file = open(log_path, 'w')
-
-                logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-
-                print(f"Experiment Log for Scene {scene_id}")
-                print(f"Final Answer: {results['llm_answer']}")
-                logging.info("This is a log message.")
-
-                # Raise an exception to see that errors are captured as well
-                try:
-                    raise Exception("This error will also go into the log file")
-                except Exception as e:
-                    logging.error(f"An error occurred: {str(e)}")
-
-                log_file.close()  # Only if you're done and don't want to keep writing
-
-                # Optionally, clear terminal logs and reset the simulator
-                print("\nClearing terminal and resetting simulation...\n")
-                os.system('cls' if os.name == 'nt' else 'clear')
+                # Reset the simulator after the run
                 experiment.simulator.reset_sim()
 
                 data = Data(scene_id, log_json_path=json_logger.json_path, scene=scene, experiment=experiment, iteration=iteration, results=results)
                 data.summarize_scenes()
-                data.whole_scene_summary()
 
 if __name__ == "__main__":
     main()

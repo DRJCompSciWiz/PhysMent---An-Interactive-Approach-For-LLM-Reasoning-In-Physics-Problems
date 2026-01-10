@@ -8,7 +8,7 @@ from Scene import Scene
 from AgentClass import OpenAIAgent, LlamaAgent, GemmaAgent, GeminiAgent, AnthropicAgent, DeepSeekAgent
 from typing import Any, Dict, List
 from datetime import datetime
-import shutil
+
 # Load environment variables from the .env file
 load_dotenv()
 
@@ -16,7 +16,7 @@ load_dotenv()
 api_key = os.getenv('OPENAI_API_KEY')
 
 class Experiment:
-    def __init__(self, scene_id: str, agent, max_iterations: int, enable_python_tool: bool = False):
+    def __init__(self, scene_id: str, agent, max_iterations: int, enable_python_tool: bool = False, agent_label: str | None = None):
         """
         Initialize the Experimental class with a Scene ID and set up the necessary components.
         
@@ -27,13 +27,15 @@ class Experiment:
         """
         self.max_iterations = max_iterations
         self.enable_python_tool = enable_python_tool
-        self.name_of_agent = agent.__class__.__name__
+        self.name_of_agent = agent_label or agent.__class__.__name__
         self.simulator = Simulator(scene_id, agent.__class__.__name__)  # Create the Simulator object
         self.scene = Scene(scene_id, enable_python_tool=self.enable_python_tool, simulator=self.simulator)  # Initialize Scene with the simulator
         self.agent = agent if isinstance(agent, (OpenAIAgent, LlamaAgent, GemmaAgent, GeminiAgent, AnthropicAgent, DeepSeekAgent)) else OpenAIAgent(model="gpt-4o-mini", api_key=api_key) # Initialize AI agent with the API key
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_filename = f"experimentslog_{self.scene.scene_id}_{timestamp}_{self.name_of_agent}.txt"
-        self.log_file_path = os.path.join(os.getcwd(), log_filename)
+        self.timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        log_filename = f"summary_{self.timestamp}.txt"
+        self.log_dir = os.path.join(os.getcwd(), "TestResults", self.name_of_agent, f"{self.scene.scene_number}")
+        os.makedirs(self.log_dir, exist_ok=True)
+        self.log_file_path = os.path.join(self.log_dir, log_filename)
         self.correct_answer_found = False  # Flag to track if the correct answer was found
         self.elapsed_seconds = 0  # Initialize elapsed seconds for the experiment
 
@@ -333,19 +335,6 @@ class Experiment:
             total_iterations = self.max_iterations if timeout_occurred else itr + 1  # Increment by 1 if answer is found, or not completed by max iterations
             f.write(f"\nTotal number of iterations: {total_iterations}\n")
         
-        # Move the log file to the proper directory after the experiment is complete**
-        
-        # Prepare the result directory for storing the log file
-        scene_number = self.scene.scene_number
-
-        result_dir = os.path.join(os.getcwd(), "TestResults", self.name_of_agent, f'Iterations: {self.max_iterations}', f"Scene{scene_number}")
-        if not os.path.exists(result_dir):
-            os.makedirs(result_dir)
-
-        # Move the log file into the corresponding directory
-        new_log_file_path = os.path.join(result_dir, f"experiment_log_scene_{scene_number}_{self.agent}.txt")
-        shutil.move(self.log_file_path, new_log_file_path)
-
         # Return the results of the experiment, including whether the correct answer was found and other statistics
         experiment_results = {
             'correct': correct_answer_found,  # Whether the correct answer was found
