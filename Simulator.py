@@ -180,7 +180,10 @@ class Simulator:
                 self.viewer.close()
 
             scene_id = str(scene_id)  # ensure it's a string
-            self.model_path = self.get_model_path(scene_id)
+            if os.path.isfile(scene_id) and scene_id.lower().endswith(".xml"):
+                self.model_path = scene_id
+            else:
+                self.model_path = self.get_model_path(scene_id)
             logging.info(f"Loading model from: {self.model_path}")
 
             self.model = mujoco.MjModel.from_xml_path(self.model_path) # type: ignore
@@ -928,6 +931,9 @@ class Simulator:
         # Parse the original scene XML
         tree = ET.parse(self.model_path)
         root = tree.getroot()
+        worldbody = root.find("worldbody")
+        if worldbody is None:
+            return {"error": "worldbody element not found in XML"}
 
         # Create new body tag
         body = ET.Element("body", name=name)
@@ -937,7 +943,7 @@ class Simulator:
         geom = ET.SubElement(body, "geom", type="sphere", size=str(density), rgba=" ".join(map(str, rgba)))
         
         # Add the new body tag to the XML
-        root.append(body)
+        worldbody.append(body)
         
         # Save the updated XML to a new file
 
@@ -964,11 +970,19 @@ class Simulator:
         # Parse the XML
         tree = ET.parse(self.model_path)
         root = tree.getroot()
+        worldbody = root.find("worldbody")
+        if worldbody is None:
+            return {"error": "worldbody element not found in XML"}
 
         # Find and remove the object with the given ID
-        body = root.find(f".//body[@name='{object_id}']")
-        if body is not None:
-            root.remove(body)
+        removed = False
+        for body in list(worldbody.findall("body")):
+            if body.get("name") == object_id:
+                worldbody.remove(body)
+                removed = True
+                break
+        if not removed:
+            return {"error": f"Body named {object_id} not found in XML"}
 
         # Save the updated XML
         updated_xml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "XMLFileCreation", f"{self.agent}",f"UpdatedXML/scene{self.scene_id}_updated.xml")

@@ -119,7 +119,7 @@ def main():
         print("❌ Python tool disabled")
 
     # Predefined list of scene IDs to iterate through
-    scene_ids = ["151"]  # Replace with actual scene IDs
+    scene_ids = ["152"]  # Replace with actual scene IDs
 
     # Set the agent type (You can modify this to initialize different agents)
     agent_types = ["OpenAIAgentGPT4omini"]  # Example: you can change this dynamically to switch agents
@@ -131,33 +131,8 @@ def main():
     if not os.path.exists(base_dir):
         os.makedirs(base_dir)
 
-    # Define scene groups (6 blocks of 25 scenes)
-    scene_groups = [list(map(str, range(i, i + 25))) for i in range(1, 151, 25)]
-
-    # Store the assigned methods per scene variation
-    scene_to_method = {}
-
-    # Define ablation methods
+    # Define ablation methods (kept for future experimentation)
     methods = ["zero_shot", "one_shot", "one_shot_cot", "few_shot", "few_shot_cot"]
-
-    for group in scene_groups:
-        selected = random.sample(group, 25)
-        for i, method in enumerate(methods):
-            for scene_id in selected[i * 5:(i + 1) * 5]:
-                scene_num = int(scene_id)
-                # Determine number of variations
-                if 1 <= scene_num <= 50:
-                    num_variations = 6
-                elif 51 <= scene_num <= 100:
-                    num_variations = 4
-                elif 101 <= scene_num <= 150:
-                    num_variations = 3
-                else:
-                    continue  # skip if out of range
-                # Assign method to all variations
-                for v in range(1, num_variations + 1):
-                    variation_id = f"{scene_num}.{v}"
-                    scene_to_method[variation_id] = method
 
     for agent_type in agent_types:
         # Initialize the agent based on the string (this part is your new dynamic agent initialization)
@@ -167,8 +142,13 @@ def main():
                 # Run the experiment by first building experiment.py which initializes the scene and simulator
                 experiment = Experiment(scene_id, agent=agent, max_iterations=iteration, enable_python_tool=args.enable_python_tool, agent_label=agent_type)
                 scene = experiment.scene  # Initialize the scene from experiments
-                method = scene_to_method.get(scene_id, "zero_shot")
-                scene.set_prompt_method(method)
+                # Default to zero_shot for every scene.
+                scene.set_prompt_method("zero_shot")
+                # To iterate across all methods in the future, replace the single call
+                # above with a loop like this and adjust logging/output paths if needed:
+                # for method in methods:
+                #     scene.set_prompt_method(method)
+                #     results = experiment.run_experiment()
                 scene_number = scene.scene_number
                 json_logger = JsonLogger(os.path.join(base_dir, f"{agent_type}", f"{scene_number}", f"log_{experiment.timestamp}.json"))
 
