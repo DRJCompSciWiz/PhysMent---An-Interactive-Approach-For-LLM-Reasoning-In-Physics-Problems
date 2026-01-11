@@ -137,32 +137,86 @@ class Experiment:
         ValueError: If the LLM output is not in valid JSON format.
 
         """
-        
+        def _extract_fenced_blocks(text: str) -> list[str]:
+            blocks = []
+            start = 0
+            while True:
+                fence_start = text.find("```", start)
+                if fence_start == -1:
+                    break
+                fence_end = text.find("```", fence_start + 3)
+                if fence_end == -1:
+                    break
+                block = text[fence_start + 3:fence_end].strip()
+                lines = block.splitlines()
+                if lines and lines[0].strip().isalpha():
+                    block = "\n".join(lines[1:]).strip()
+                blocks.append(block)
+                start = fence_end + 3
+            return blocks
+
+        def _extract_json_candidate(text: str, start_idx: int) -> str | None:
+            start = None
+            stack = []
+            in_string = False
+            escape = False
+            for idx in range(start_idx, len(text)):
+                ch = text[idx]
+                if start is None:
+                    if ch in "[{":
+                        start = idx
+                        stack.append(ch)
+                    continue
+                if in_string:
+                    if escape:
+                        escape = False
+                    elif ch == "\\":
+                        escape = True
+                    elif ch == "\"":
+                        in_string = False
+                    continue
+                if ch == "\"":
+                    in_string = True
+                    continue
+                if ch in "[{":
+                    stack.append(ch)
+                    continue
+                if ch in "]}":
+                    if not stack:
+                        break
+                    open_ch = stack.pop()
+                    if (open_ch == "[" and ch != "]") or (open_ch == "{" and ch != "}"):
+                        break
+                    if not stack:
+                        return text[start:idx + 1]
+            return None
+
         try:
-            # First try to find a JSON array [...]
-            json_start = llm_output.find("[")
-            json_end = llm_output.rfind("]")
-            
-            if json_start != -1 and json_end != -1:
-                json_str = llm_output[json_start:json_end+1]
-                # Try parsing as array
-                json.loads(json_str)  # Verify it's valid JSON
-                return json_str
-                
-            # If no array found, try to find object {...}
-            json_start = llm_output.find("{")
-            if json_start == -1:
-                return json.dumps([{"tool": "reset_sim", "parameters": {}}])
-                
-            # Extract JSON part
-            json_part = llm_output[json_start:]
-            # Try parsing it
-            json_obj = json.loads(json_part)
-            
-            # Return appropriate format
-            if isinstance(json_obj, list):
-                return json.dumps(json_obj)
-            return json.dumps([json_obj])  # Wrap single object in array
+            for block in _extract_fenced_blocks(llm_output):
+                try:
+                    json_obj = json.loads(block)
+                    if isinstance(json_obj, list):
+                        return json.dumps(json_obj)
+                    return json.dumps([json_obj])
+                except Exception:
+                    continue
+
+            text = llm_output
+            for idx, ch in enumerate(text):
+                if ch not in "[{":
+                    continue
+                candidate = _extract_json_candidate(text, idx)
+                if candidate is None:
+                    continue
+                try:
+                    json_obj = json.loads(candidate)
+                    if isinstance(json_obj, list):
+                        return json.dumps(json_obj)
+                    return json.dumps([json_obj])
+                except Exception:
+                    continue
+
+            raise ValueError("No JSON object or array found in response.")
         except Exception as e:
             logging.warning(f"JSON parsing error: {e}, response: {llm_output}")
             raise ValueError(f"Invalid JSON syntax. Error: {e}")
@@ -189,6 +243,7 @@ class Experiment:
         # Get the scene prompt and tool descriptions from the Scene object
         scene_prompt = self.scene.generate_prompt()
         results = []  # List to store the results of tool calls during each iteration
+        all_results = []  # Accumulate tool call results across iterations for logging
         num_tool_calls = 0  # Counter to track the number of tool calls made during the experiment
         tool_history = []  # Track tool calls to detect loops
         tool_usage = {}
@@ -214,7 +269,7 @@ class Experiment:
                 tool_calls_json_str = self.extract_json_response(str(llm_response))
                 tool_calls_json_obj = json.loads(tool_calls_json_str)
                 tool_history.append(tool_calls_json_str)
-            except ValueError as e:
+            except ValueError:
                 # Construct the error message listing the tools that caused invalid JSON
                 error_msg = f"Error: Invalid JSON syntax for tool(s). Please try again with proper syntax."
                 
@@ -282,6 +337,7 @@ class Experiment:
             # If no answer is found, execute the tool calls as planned
             if not answer_found:
                 results = self.execute_tool_calls(tool_calls_json_str)  # Execute tool calls and get results
+                all_results.extend(results)
                 for result in results:
                     tool_name = result['tool']
                     tool_usage[tool_name] = tool_usage.get(tool_name, 0) + 1
@@ -325,7 +381,7 @@ class Experiment:
                 f.write(f"  [{i}] {call}\n")
 
             f.write("\n--- Tool Call Results ---\n")
-            for i, result in enumerate(results, 1):
+            for i, result in enumerate(all_results, 1):
                 f.write(f"  [{i}] {result}\n")
 
             # Append Python tool status

@@ -1,6 +1,5 @@
 import os
 import json
-import sys
 import logging
 from AgentClass import (
     OpenAIAgent,
@@ -10,16 +9,11 @@ from AgentClass import (
     AnthropicAgent,
     DeepSeekAgent
 )
-from Scene import Scene
-from Simulator import Simulator
 from Experiment import Experiment
 from Data import Data
 import argparse
 import random
-from dotenv import load_dotenv
 import threading
-
-load_dotenv()
 
 class JsonLogger:
     def __init__(self, json_path):
@@ -112,10 +106,11 @@ def main():
     and saves them to a JSON file.
     """
     parser = argparse.ArgumentParser()
-    # TODO: This enable_python_tool is randomly set twice (once here once in Scene). WTF?? Fix this
+    # TODO: This enable_python_tool is randomly set twice (once here once in Scene). WTF?? Fix this. For now, fixing this to False
     parser.add_argument("--enable-python-tool", action="store_true", help="Enable the Python evaluation tool")
     args = parser.parse_args()
-    args.enable_python_tool = random.choice([True, False])
+    # args.enable_python_tool = random.choice([True, False])
+    args.enable_python_tool = False
     if args.enable_python_tool:
         print("✅ Python tool enabled")
         # Pass this flag into Experiment or wherever tool setup happens

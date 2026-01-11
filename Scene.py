@@ -337,6 +337,7 @@ class Scene:
             f'\n1 simulation step is 0.005 real life seconds, and ALL problems are based off of real life time if seconds are mentioned in the task.\n'
             f'\nDo not make any assumptions about the positions or states of objects, if you are unsure you can use tools get this information.\n'
             f'\nThe z plane is the vertical plane, and the x and y planes are the horizontal planes.\n'
+            f'\nWhen answering, use the world coordinate frame with signed values: +x, +y, +z are the positive directions; motion or quantities in the opposite directions must be negative. Report signed vectors and scalars accordingly.\n'
             f'\nUnderstand that you can use the tools to gather necessary information pertainig to all objects in the scene, not just the one you are trying to analyze.\n'
             f'\nIf your json format is incorrect - the environment will tell you and the simulator will remain in the same state. If one of your tool calls has incorrect formatting, the previous tool calls will successfully execute but the incorrect tool and subsequent tools will not execute. You will see how your tool call was incorrect and get a chance to retry in the next iteration.\n'
             f'\nRemember that YOU MUST PROVIDE YOUR REASONING FOR EVERY ACTION you take, and then make sure to add a valid JSON format of an array of tool calls.\n'
