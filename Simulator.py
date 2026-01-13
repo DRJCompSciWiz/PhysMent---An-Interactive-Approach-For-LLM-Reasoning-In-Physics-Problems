@@ -757,20 +757,35 @@ class Simulator:
         
     def get_rotational_energy(self, object_id: str, mass: float) -> dict:
         """
-        Calculates the rotational energy of an object.
+        Calculates the rotational kinetic energy of an object.
+        Rotational KE = 0.5 * omega^T * I * omega = 0.5 * sum(I_i * omega_i^2)
 
         Parameters:
             object_id (str): The unique identifier for the object.
-            mass (float): The mass of the object.
+            mass (float): The mass of the object (not used directly, kept for API compatibility).
 
         Returns:
             dict: A dictionary containing the rotational energy of the object.
         """
         try:
-            angular_velocity = self.get_angular_momentum(object_id, mass)["angular_momentum"]
-            inertia = self.model.body_inertia[self.get_body_id(object_id)].tolist()
-            rotational_energy = 0.5 * np.dot(angular_velocity, inertia)
-            return {"rotational_energy": rotational_energy}
+            object_id = str(object_id)
+            if not object_id.startswith("object_"):
+                object_id = f"object_{object_id}"
+            
+            # Get angular velocity using internal helper
+            ang_vel_result = self._get_angular_velocity(object_id)
+            if "error" in ang_vel_result:
+                return ang_vel_result
+            angular_velocity = np.array(ang_vel_result["angular_velocity"])
+            
+            # Get body inertia (diagonal elements of inertia tensor)
+            body_id = self.get_body_id(object_id)
+            inertia = np.array(self.model.body_inertia[body_id])  # [Ixx, Iyy, Izz]
+            
+            # Calculate rotational kinetic energy: KE = 0.5 * sum(I_i * omega_i^2)
+            rotational_energy = 0.5 * np.sum(inertia * angular_velocity ** 2)
+            
+            return {"rotational_energy": float(rotational_energy)}
         except Exception as e:
             return {"error": str(e)}
 
@@ -814,32 +829,66 @@ class Simulator:
             logging.error(f"Error in get_momentum for object_id='{object_id}': {str(e)}")
             return {"error": str(e)}
 
-    def get_angular_momentum(self, object_id: str, mass: float) -> dict:
+    def _get_angular_velocity(self, object_id: str) -> dict:
         """
-        Calculates the angular momentum of an object in the simulation.
+        Internal helper to retrieve the angular velocity of an object in the simulation.
 
         Parameters:
             object_id (str): The unique identifier for the object.
-            mass (float): The mass of the object.
+
+        Returns:
+            dict: A dictionary containing the angular velocity (wx, wy, wz) of the object.
+        """
+        try:
+            if not object_id.startswith("object_"):
+                object_id = f"object_{object_id}"
+            joint_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, f"{object_id}_joint")
+            if joint_id == -1:
+                return {"error": f"Joint named {object_id}_joint not found."}
+            qvel_addr = self.model.jnt_dofadr[joint_id]
+            # For a free joint, angular velocity is at indices 3, 4, 5 (after linear velocity)
+            angular_velocity = self.data.qvel[qvel_addr + 3:qvel_addr + 6]
+            return {"angular_velocity": angular_velocity.tolist()}
+        except Exception as e:
+            return {"error": str(e)}
+
+    def get_angular_momentum(self, object_id: str, mass: float) -> dict:
+        """
+        Calculates the angular momentum of an object in the simulation.
+        Angular momentum L = I * omega, where I is the inertia tensor and omega is angular velocity.
+
+        Parameters:
+            object_id (str): The unique identifier for the object.
+            mass (float): The mass of the object (not used directly, kept for API compatibility).
 
         Returns:
             dict: A dictionary containing the angular momentum of the object.
         """
         try:
-            object_id = str(object_id)  # Ensure object_id is a string
-            body_id = self.get_body_id(object_id)  # Get body ID based on object_id
-
-            # Get the position vector of the body
-            position = np.array(self.data.xpos[body_id])  # Assuming xpos holds the position (x, y, z)
+            object_id = str(object_id)
+            if not object_id.startswith("object_"):
+                object_id = f"object_{object_id}"
             
-            # Get the angular velocity components (the last 3 components)
-            angvel = np.array(self.data.cvel[body_id][3:6])  # Angular velocity in (wx, wy, wz)
+            # Get angular velocity using internal helper
+            ang_vel_result = self._get_angular_velocity(object_id)
+            if "error" in ang_vel_result:
+                return ang_vel_result
+            angular_velocity = np.array(ang_vel_result["angular_velocity"])
             
-            # Calculate the angular momentum as cross product of position and momentum (mass * velocity)
-            momentum = mass * np.array(self.data.qvel[body_id][:3])  # Linear momentum (mass * velocity)
-            ang_momentum = np.cross(position, momentum)  # Cross product for angular momentum
+            # Get body inertia (diagonal elements of inertia tensor in body frame)
+            body_id = self.get_body_id(object_id)
+            inertia = np.array(self.model.body_inertia[body_id])  # [Ixx, Iyy, Izz]
             
-            return {"angular_momentum": ang_momentum.tolist()}
+            # Calculate angular momentum: L = I * omega (element-wise for diagonal inertia)
+            ang_momentum = inertia * angular_velocity
+            
+            return {
+                "angular_momentum": {
+                    "x": float(ang_momentum[0]),
+                    "y": float(ang_momentum[1]),
+                    "z": float(ang_momentum[2])
+                }
+            }
         
         except Exception as e:
             return {"error": str(e)}
