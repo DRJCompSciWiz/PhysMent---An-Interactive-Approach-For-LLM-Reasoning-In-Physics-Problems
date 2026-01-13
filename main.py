@@ -14,6 +14,7 @@ from Data import Data
 import argparse
 import random
 import threading
+import config
 
 
 class JsonLogger:
@@ -106,6 +107,14 @@ def initialize_agent(agent_type: str):
         )  # You can edit this part by adding more elif statements for other agents
 
 
+def add_scenes(scene_list: list[str]) -> None:
+    for id in range(config.start_scene, config.end_scene + 1):
+        scene_list.append(id.__str__())
+
+
+scene_ids: list[str] = []
+
+
 def main():
     """
     Executes experiments for predefined scene IDs, collects results,
@@ -129,16 +138,13 @@ def main():
         print("❌ Python tool disabled")
 
     # Predefined list of scene IDs to iterate through
-    # scene_ids = ["154"]  # Replace with actual scene IDs
-    scene_ids = [
-        "154",
-    ]
+    add_scenes(scene_ids)
     # Set the agent type (You can modify this to initialize different agents)
-    agent_types = [
-        "OpenAIAgentGPT4omini"
-    ]  # Example: you can change this dynamically to switch agents
+    agent_types: list[str] = (
+        config.agents
+    )  # Example: you can change this dynamically to switch agents
 
-    iterations = [5]  # Example iterations, can be modified as needed
+    iterations = config.iterations  # Example iterations, can be modified as needed
 
     # Set the base directory for test results
     base_dir = os.path.join(os.getcwd(), "TestResults")
@@ -153,6 +159,7 @@ def main():
         agent = initialize_agent(agent_type)
         for iteration in iterations:
             for scene_id in scene_ids:
+                print(f"ON SCENE: {scene_id} ---")
                 # Run the experiment by first building experiment.py which initializes the scene and simulator
                 experiment = Experiment(
                     scene_id,
