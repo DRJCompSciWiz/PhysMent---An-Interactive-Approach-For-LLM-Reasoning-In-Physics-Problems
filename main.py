@@ -7,13 +7,14 @@ from AgentClass import (
     GemmaAgent,
     GeminiAgent,
     AnthropicAgent,
-    DeepSeekAgent
+    DeepSeekAgent,
 )
 from Experiment import Experiment
 from Data import Data
 import argparse
 import random
 import threading
+
 
 class JsonLogger:
     def __init__(self, json_path):
@@ -28,7 +29,7 @@ class JsonLogger:
             except Exception:
                 self.entries = []
         else:
-        # Create an empty JSON file if it doesn't exist
+            # Create an empty JSON file if it doesn't exist
             os.makedirs(os.path.dirname(json_path), exist_ok=True)
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(self.entries, f, indent=2, ensure_ascii=False)
@@ -38,6 +39,7 @@ class JsonLogger:
             self.entries.append({kind: message})
             with open(self.json_path, "w", encoding="utf-8") as f:
                 json.dump(self.entries, f, indent=2, ensure_ascii=False)
+
 
 class Tee:
     def __init__(self, *streams, json_logger=None):
@@ -54,6 +56,7 @@ class Tee:
     def flush(self):
         for s in self.streams:
             s.flush()
+
 
 class JsonLoggingHandler(logging.Handler):
     def __init__(self, json_logger):
@@ -75,39 +78,46 @@ def initialize_agent(agent_type: str):
     """
     if agent_type == "OpenAIAgentGPT4omini":
         return OpenAIAgent(model="gpt-4o-mini")
-    
+
     elif agent_type == "OpenAIAgentGPT4.1mini":
         return OpenAIAgent(model="gpt-4.1-mini")
-    
+
     elif agent_type == "OpenAIAgentGPT4.1":
         return OpenAIAgent(model="gpt-4.1")
 
     elif agent_type == "LlamaAgent":
         return LlamaAgent()
-    
+
     elif agent_type == "GemmaAgent":
         return GemmaAgent()
-    
+
     elif agent_type == "GeminiAgent":
         return GeminiAgent()
-    
+
     elif agent_type == "AnthropicAgent":
         return AnthropicAgent()
-    
+
     elif agent_type == "DeepSeekAgent":
         return DeepSeekAgent()
-    
+
     else:
-        raise ValueError(f"Unknown agent type: {agent_type}") # You can edit this part by adding more elif statements for other agents
-    
+        raise ValueError(
+            f"Unknown agent type: {agent_type}"
+        )  # You can edit this part by adding more elif statements for other agents
+
+
 def main():
     """
-    Executes experiments for predefined scene IDs, collects results, 
+    Executes experiments for predefined scene IDs, collects results,
     and saves them to a JSON file.
     """
     parser = argparse.ArgumentParser()
     # TODO: This enable_python_tool is randomly set twice (once here once in Scene). WTF?? Fix this. For now, fixing this to False
-    parser.add_argument("--enable-python-tool", action="store_true", help="Enable the Python evaluation tool")
+    parser.add_argument(
+        "--enable-python-tool",
+        action="store_true",
+        help="Enable the Python evaluation tool",
+    )
     args = parser.parse_args()
     # args.enable_python_tool = random.choice([True, False])
     args.enable_python_tool = False
@@ -119,10 +129,14 @@ def main():
         print("❌ Python tool disabled")
 
     # Predefined list of scene IDs to iterate through
-    scene_ids = ["152"]  # Replace with actual scene IDs
-
+    # scene_ids = ["154"]  # Replace with actual scene IDs
+    scene_ids = [
+        "154",
+    ]
     # Set the agent type (You can modify this to initialize different agents)
-    agent_types = ["OpenAIAgentGPT4omini"]  # Example: you can change this dynamically to switch agents
+    agent_types = [
+        "OpenAIAgentGPT4omini"
+    ]  # Example: you can change this dynamically to switch agents
 
     iterations = [5]  # Example iterations, can be modified as needed
 
@@ -140,7 +154,13 @@ def main():
         for iteration in iterations:
             for scene_id in scene_ids:
                 # Run the experiment by first building experiment.py which initializes the scene and simulator
-                experiment = Experiment(scene_id, agent=agent, max_iterations=iteration, enable_python_tool=args.enable_python_tool, agent_label=agent_type)
+                experiment = Experiment(
+                    scene_id,
+                    agent=agent,
+                    max_iterations=iteration,
+                    enable_python_tool=args.enable_python_tool,
+                    agent_label=agent_type,
+                )
                 scene = experiment.scene  # Initialize the scene from experiments
                 # Default to zero_shot for every scene.
                 scene.set_prompt_method("zero_shot")
@@ -150,34 +170,54 @@ def main():
                 #     scene.set_prompt_method(method)
                 #     results = experiment.run_experiment()
                 scene_number = scene.scene_number
-                json_logger = JsonLogger(os.path.join(base_dir, f"{agent_type}", f"{scene_number}", f"log_{experiment.timestamp}.json"))
-
+                json_logger = JsonLogger(
+                    os.path.join(
+                        base_dir,
+                        f"{agent_type}",
+                        f"{scene_number}",
+                        f"log_{experiment.timestamp}.json",
+                    )
+                )
 
                 try:
                     results = experiment.run_experiment()
                 except Exception as e:
                     error_msg = str(e).lower()
-                    if "rate limit" in error_msg or "quota" in error_msg or "maximum context length" in error_msg:
-                        print(f"🚫 Rate limit or quota exceeded for {agent_type}. Skipping remaining scenes.\nError: {e}")
+                    if (
+                        "rate limit" in error_msg
+                        or "quota" in error_msg
+                        or "maximum context length" in error_msg
+                    ):
+                        print(
+                            f"🚫 Rate limit or quota exceeded for {agent_type}. Skipping remaining scenes.\nError: {e}"
+                        )
                         break  # Break out of scene loop and move on to the next model
                     else:
                         print(f"⚠️ Unexpected error in scene {scene_id}: {e}")
                         continue  # Skip this scene but continue with others
 
                 # Process results
-                if results['answer_found']:
+                if results["answer_found"]:
                     print("\n=== Answer Summary ===")
                     print(f"LLM's Answer: {results['llm_answer']}")
                     print(f"Correct Answer: {results['correct_answer']}")
                     print(f"Answer Correct: {results['correct']}")
                 else:
                     print("\nNo answer was provided by the LLM.")
-                
+
                 # Reset the simulator after the run
                 experiment.simulator.reset_sim()
 
-                data = Data(scene_id, log_json_path=json_logger.json_path, scene=scene, experiment=experiment, iteration=iteration, results=results)
+                data = Data(
+                    scene_id,
+                    log_json_path=json_logger.json_path,
+                    scene=scene,
+                    experiment=experiment,
+                    iteration=iteration,
+                    results=results,
+                )
                 data.summarize_scenes()
+
 
 if __name__ == "__main__":
     main()
