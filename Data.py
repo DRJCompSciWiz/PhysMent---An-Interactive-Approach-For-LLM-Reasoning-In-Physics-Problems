@@ -76,6 +76,78 @@ class Data:
         with open(self.log_json_path, "w", encoding="utf-8") as f:
             json.dump(entries, f, indent=2, ensure_ascii=False)
 
+    def compute_auto_scores(self):
+        """
+        Automatically computes all research metrics based on experiment results.
+
+        Returns:
+            dict: Dictionary containing all computed scores (0-1 scale)
+        """
+        if self.results is None:
+            raise ValueError("Experiment results not provided; cannot compute scores.")
+
+        results = self.results
+        num_tool_calls = results['num_tool_calls']
+        tool_usage = results['tool_usage']
+        iterations = results['iterations']
+        successful_calls = results.get('successful_calls', num_tool_calls)  # Default to all successful if not tracked
+        failed_calls = results.get('failed_calls', 0)
+
+        # 1. Correctness Score (use results dict instead of experiment attribute)
+        correctness_score = 1.0 if results.get('correct', False) else 0.0
+
+        # 2. Efficiency Score - measures resource usage efficiency
+        iteration_efficiency = 1.0 - (iterations / max(self.experiment.max_iterations, 1))
+        tool_call_efficiency = 1.0 - min(num_tool_calls / 20.0, 1.0)  # Cap at 20 calls
+        time_efficiency = 1.0 - min(self.experiment.elapsed_seconds / 120.0, 1.0)  # Cap at 2 minutes
+        efficiency_score = (iteration_efficiency + tool_call_efficiency + time_efficiency) / 3.0
+
+        # 3. Groundedness Score - measures reliance on simulation data
+        query_tools = ['get_velocity', 'get_position', 'get_parameters', 'get_displacement',
+                       'get_acceleration', 'get_torque', 'get_center_of_mass', 'get_potential_energy',
+                       'get_kinetic_energy', 'get_rotational_energy', 'get_momentum',
+                       'get_angular_momentum', 'detect_collision', 'find_objects']
+
+        query_count = sum(tool_usage.get(tool, 0) for tool in query_tools)
+        total_non_answer_calls = num_tool_calls - tool_usage.get('answer', 0)
+        groundedness_score = query_count / max(total_non_answer_calls, 1)
+        groundedness_score = min(groundedness_score, 1.0)  # Cap at 1.0
+
+        # 4. Action Validity Score - measures success rate of tool executions
+        action_validity_score = successful_calls / max(successful_calls + failed_calls, 1)
+
+        # 5. Reasoning Score - heuristic-based problem-solving quality
+        # Tool diversity: how many unique tools used
+        tool_diversity = len(tool_usage) / 26.0  # 26 total tools available
+
+        # Appropriate tool usage for computation problems
+        has_step = 'step' in tool_usage
+        has_queries = any(tool in tool_usage for tool in query_tools)
+        appropriate_tools = 1.0 if (has_step and has_queries) else 0.5
+
+        # No excessive repetition: penalize if one tool dominates
+        max_tool_usage = max(tool_usage.values()) if tool_usage else 0
+        repetition_penalty = min(max_tool_usage / max(num_tool_calls, 1), 1.0)
+        balance_score = 1.0 - (repetition_penalty * 0.5)  # 50% penalty for full repetition
+
+        reasoning_score = (tool_diversity + appropriate_tools + balance_score) / 3.0
+
+        # 6. Generalization Score - tool diversity proxy
+        unique_tool_ratio = len(tool_usage) / max(num_tool_calls, 1)
+        generalization_score = unique_tool_ratio
+
+        return {
+            'correctness': correctness_score,
+            'efficiency': efficiency_score,
+            'groundedness': groundedness_score,
+            'action_validity': action_validity_score,
+            'reasoning': reasoning_score,
+            'generalization': generalization_score,
+            'query_tool_ratio': query_count / max(total_non_answer_calls, 1),
+            'tool_diversity_ratio': tool_diversity,
+            'success_rate': action_validity_score
+        }
+
     def summarize_scenes(self):
         """
         Creates a summary for the experiment based on the scene type and scores, and appends it to the log.
@@ -147,6 +219,23 @@ class Data:
         num_tool_calls = results['num_tool_calls']
         tool_usage = results['tool_usage']
 
+        # Compute all auto-scores
+        scores = self.compute_auto_scores()
+
+        # Calculate final weighted score using scene-type coefficients
+        correctness_weight = 1.0  # Always most important
+        final_score_raw = (
+            scores['correctness'] * correctness_weight +
+            scores['reasoning'] * reasoning_score +
+            scores['groundedness'] * groundedness_score +
+            scores['action_validity'] * action_validity_score +
+            scores['generalization'] * generalization_score
+        )
+
+        # Normalize to 0-100 scale
+        total_weight = correctness_weight + reasoning_score + groundedness_score + action_validity_score + generalization_score
+        final_score_normalized = (final_score_raw / total_weight) * 100
+
         summary = {
             "Agent": self.experiment.name_of_agent,
             "Scene ID": self.scene_id,
@@ -161,13 +250,27 @@ class Data:
             "Iterations Given": self.experiment.max_iterations,
             "Python Eval Tool Enabled": self.experiment.enable_python_tool,
             "Time for Experimentation (s)": self.experiment.elapsed_seconds,
-            "Correctness (Outcome Success Score)": 1.0 if self.experiment.correct_answer_found else 0.0,
-            f"Generalization Score: Coefficient is {generalization_score}": "manual input here",
-            f"Reasoning Score: Coefficient is {reasoning_score}": "manual input here",
-            f"Groundedness Score: Coefficient is {groundedness_score}": "manual input here",
-            f"Action Validity Score: Coefficient is {action_validity_score}": "manual input here",
-            "Final Score": "manual input here",
-            "Comments": "manual input here"
+            "Correctness (Outcome Success Score)": scores['correctness'],
+
+            # Component scores with coefficients
+            f"Generalization Score (weight={generalization_score})": round(scores['generalization'], 4),
+            f"Reasoning Score (weight={reasoning_score})": round(scores['reasoning'], 4),
+            f"Groundedness Score (weight={groundedness_score})": round(scores['groundedness'], 4),
+            f"Action Validity Score (weight={action_validity_score})": round(scores['action_validity'], 4),
+
+            # Final weighted score
+            "Final Score (0-100)": round(final_score_normalized, 2),
+
+            # Additional research metrics
+            "Efficiency Score": round(scores['efficiency'], 4),
+            "Tool Diversity Ratio": round(scores['tool_diversity_ratio'], 4),
+            "Query-to-Action Ratio": round(scores['query_tool_ratio'], 4),
+            "Tool Success Rate": round(scores['success_rate'], 4),
+            "Successful Tool Calls": results.get('successful_calls', num_tool_calls),
+            "Failed Tool Calls": results.get('failed_calls', 0),
+
+            # Optional comments field
+            "Comments": ""
         }
 
         # Append to shared log file

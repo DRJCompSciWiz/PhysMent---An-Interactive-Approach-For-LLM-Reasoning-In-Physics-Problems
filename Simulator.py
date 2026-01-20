@@ -121,16 +121,23 @@ class Simulator:
             # Load model with error handling
             self.model = mujoco.MjModel.from_xml_path(self.model_path) # type: ignore
             self.data = mujoco.MjData(self.model) # type: ignore
-            
-            # Initialize viewer
-            self.viewer = mujoco.viewer.launch_passive(self.model, self.data)
+
+            # Initialize viewer (optional - may fail on macOS without mjpython)
+            self.viewer = None
+            try:
+                self.viewer = mujoco.viewer.launch_passive(self.model, self.data)
+                logging.info("MuJoCo viewer initialized successfully")
+            except Exception as viewer_error:
+                logging.warning(f"Could not initialize viewer (running headless): {viewer_error}")
+                logging.warning("Continuing without visualization - this is normal on macOS without mjpython")
+
             self.start_pos = np.copy(self.data.qpos)
             self.time = 0
             self.prev_velocities = {}  # Store previous velocities for acceleration calculations
-            
+
             # Ensuring the initial velocity is zero
             self.data.qvel[:] = 0.0  # Setting all initial velocities to zero
-            
+
         except Exception as e:
             logging.error(f"MuJoCo initialization failed: {e}")
             raise
@@ -189,7 +196,13 @@ class Simulator:
             self.model = mujoco.MjModel.from_xml_path(self.model_path) # type: ignore
             self.data = mujoco.MjData(self.model) # type: ignore
 
-            self.viewer = mujoco.viewer.launch_passive(self.model, self.data)
+            # Try to launch viewer (may fail on macOS without mjpython)
+            try:
+                self.viewer = mujoco.viewer.launch_passive(self.model, self.data)
+            except Exception as viewer_error:
+                logging.warning(f"Could not initialize viewer: {viewer_error}")
+                self.viewer = None
+
             self.start_pos = np.copy(self.data.qpos)
             self.time = 0
 
@@ -203,8 +216,10 @@ class Simulator:
         Returns:
             None
         """
-        self.viewer.sync()
-        return self.viewer.capture_frame() # type: ignore
+        if self.viewer:
+            self.viewer.sync()
+            return self.viewer.capture_frame() # type: ignore
+        return None
         
     def get_body_id(self, object_id: str) -> int:
         """

@@ -82,36 +82,44 @@ class Experiment:
         except Exception as e:
             return f"Error executing code: {str(e)}"
         
-    def execute_tool_calls(self, tool_calls_json: str) -> List[Dict[str, Any]]:
+    def execute_tool_calls(self, tool_calls_json: str) -> tuple[List[Dict[str, Any]], int, int]:
         """
-        Execute the provided tool calls, log the results, and return them.
+        Execute the provided tool calls, log the results, and return them along with success/error counts.
 
         Args:
             tool_calls_json (str): A JSON string representing the tool calls to be executed.
 
         Returns:
-            List[Dict[str, Any]]: A list of dictionaries containing the results of each tool call, 
-                                   including the tool name, parameters, result, and simulation time.
+            tuple: A tuple containing:
+                - List[Dict[str, Any]]: A list of dictionaries containing the results of each tool call
+                - int: Number of successful tool calls
+                - int: Number of failed tool calls
         """
         tool_calls = json.loads(tool_calls_json)  # Parse the JSON string into a list of tool calls
         aggregated_results = []  # Initialize a list to store the results of the tool calls
+        successful_calls = 0
+        failed_calls = 0
 
         for call in tool_calls:
             tool = call['tool']
             params = call['parameters']
             result = None
+            has_error = False
 
             try:
                 # Attempt to find and execute the tool if it exists in the mapping
                 if tool in self.tool_mapping:
                     func = self.tool_mapping[tool]
                     result = func(**params)  # Execute the function dynamically with the parameters
+                    successful_calls += 1
                 else:
                     raise ValueError(f"Unknown tool '{tool}'")
             except Exception as e:
                 # If an exception occurs during the execution of a tool, log it and return an error result
                 logging.error(f"Exception during '{tool}': {str(e)}")
                 result = {"error": str(e)}
+                failed_calls += 1
+                has_error = True
 
             # Append the result, including the tool name, parameters, and result to the aggregated results
             aggregated_results.append({
@@ -121,7 +129,7 @@ class Experiment:
                 "sim_time": self.simulator.time  # Record the simulation time during this call
             })
 
-        return aggregated_results
+        return aggregated_results, successful_calls, failed_calls
 
     def extract_json_response(self, llm_output: str) -> str:
         """
@@ -247,6 +255,8 @@ class Experiment:
         num_tool_calls = 0  # Counter to track the number of tool calls made during the experiment
         tool_history = []  # Track tool calls to detect loops
         tool_usage = {}
+        successful_tool_calls = 0  # Track successful tool executions
+        failed_tool_calls = 0  # Track failed tool executions
         llm_input_prompt = scene_prompt
         itr = 0  # Initialize iteration counter to 0 before the loop starts
 
@@ -303,6 +313,7 @@ class Experiment:
 
                         tool_usage['answer'] = tool_usage.get('answer', 0) + 1
                         num_tool_calls += 1
+                        successful_tool_calls += 1  # Count answer as successful tool call
                     else:
                         # Log warning and provide feedback when null answer is given
                         logging.warning("LLM provided a null answer value")
@@ -310,6 +321,8 @@ class Experiment:
                             "tool": "answer",
                             "error": "Null answer provided. Please call the answer tool with a valid value."
                         })
+                        num_tool_calls += 1
+                        failed_tool_calls += 1  # Count null answer as failed tool call
                         # Do not mark as found when answer is null
                         answer_found = False
                     # Improved answer validation for numerical answers
@@ -336,8 +349,10 @@ class Experiment:
             
             # If no answer is found, execute the tool calls as planned
             if not answer_found:
-                results = self.execute_tool_calls(tool_calls_json_str)  # Execute tool calls and get results
+                results, success_count, error_count = self.execute_tool_calls(tool_calls_json_str)  # Execute tool calls and get results
                 all_results.extend(results)
+                successful_tool_calls += success_count
+                failed_tool_calls += error_count
                 for result in results:
                     tool_name = result['tool']
                     tool_usage[tool_name] = tool_usage.get(tool_name, 0) + 1
@@ -372,6 +387,9 @@ class Experiment:
             
             f.write("\n--- Tool Usage Statistics ---\n")
             f.write(f"Total number of tool calls: {num_tool_calls}\n")
+            f.write(f"Successful tool calls: {successful_tool_calls}\n")
+            f.write(f"Failed tool calls: {failed_tool_calls}\n")
+            f.write(f"Success rate: {successful_tool_calls / max(num_tool_calls, 1) * 100:.1f}%\n")
             f.write("Tools used:\n")
             for tool, count in sorted(tool_usage.items()):
                 f.write(f"  - {tool}: {count} times\n")
@@ -398,9 +416,11 @@ class Experiment:
             'num_tool_calls': num_tool_calls,  # Total number of tool calls made
             'iterations': itr + 1 if not timeout_occurred else self.max_iterations,  # Total iterations performed
             'answer_found': answer_found,  # Whether any answer was provided (regardless of correctness)
-            'tool_usage': tool_usage, 
-            'llm_answer': llm_final_answer,  
-            'correct_answer': correct_answer_value  
+            'tool_usage': tool_usage,
+            'llm_answer': llm_final_answer,
+            'correct_answer': correct_answer_value,
+            'successful_calls': successful_tool_calls,  # Number of successful tool executions
+            'failed_calls': failed_tool_calls  # Number of failed tool executions
         } 
 
         end_time = time.time()
