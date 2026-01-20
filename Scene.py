@@ -63,12 +63,9 @@ class Scene:
         self.scene_number = int(self.scene_id)
         script_dir = os.path.dirname(os.path.abspath(__file__))
         base_dir = os.path.join(script_dir, "Scenes")
-        if self.scene_number > 150:
-            self.scene_data = os.path.join(base_dir, f"Scene{self.scene_number}", f"scene{self.scene_number}.json")
-            self.scene_xml = os.path.join(base_dir, f"Scene{self.scene_number}", f"scene{self.scene_number}.xml")
-        else:
-            self.scene_data = os.path.join(base_dir, f"Scene{self.scene_number}", f"Scene{self.scene_id}", f"scene{self.scene_id}.json")
-            self.scene_xml = os.path.join(base_dir, f"Scene{self.scene_number}", f"Scene{self.scene_id}", f"scene{self.scene_id}.xml")
+        # Use consistent structure for all scenes: Scenes/Scene{number}/scene{number}.json
+        self.scene_data = os.path.join(base_dir, f"Scene{self.scene_number}", f"scene{self.scene_number}.json")
+        self.scene_xml = os.path.join(base_dir, f"Scene{self.scene_number}", f"scene{self.scene_number}.xml")
 
         with open(self.scene_data, 'r') as file:
             scene_json_data = json.load(file)

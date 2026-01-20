@@ -161,10 +161,8 @@ class Simulator:
             # Extract scene number and construct XML path
             scene_float = scene_id.split("_")[-1]
             scene_number = int(scene_float.split(".")[0])
-            if scene_number < 150:
-                xml_path = os.path.join(scenes_dir, f'Scene{scene_number}', f"scene{scene_float}", f"scene{scene_float}.xml")
-            else:
-                xml_path = os.path.join(scenes_dir, f'Scene{scene_number}', f"scene{scene_number}.xml")
+            # Use consistent structure for all scenes: Scenes/Scene{number}/scene{number}.xml
+            xml_path = os.path.join(scenes_dir, f'Scene{scene_number}', f"scene{scene_number}.xml")
 
             # Verify if the file exists
             if not os.path.exists(xml_path):
