@@ -2,12 +2,14 @@
 iterations: list[int] = [
     5,
 ]  # iterations LLM gets before hard stop
-start_scene: int = 151  # first test scene
-end_scene: int = 158  # last test scene
+
+# NOTE: FIX NUMBERING SCHEMA LATER...THIS IS JUST A TEMP FIX
+start_scene: int = 7  # first test scene
+end_scene: int = 112  # last test scene
 
 # NOTE: Agent management
 agents: list[str] = [
-    "OpenAIAgentGPT4omini",
+    "OpenAIAgentGPT5mini",
 ]
 
 # NOTE: Experimental methods

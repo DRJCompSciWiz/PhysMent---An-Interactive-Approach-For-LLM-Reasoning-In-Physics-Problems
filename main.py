@@ -1,6 +1,9 @@
+from inspect import Traceback
 import os
 import json
 import logging
+
+from openai import OpenAI
 from AgentClass import (
     OpenAIAgent,
     LlamaAgent,
@@ -88,6 +91,9 @@ def initialize_agent(agent_type: str):
     elif agent_type == "OpenAIAgentGPT4.1":
         return OpenAIAgent(model="gpt-4.1")
 
+    elif agent_type == "OpenAIAgentGPT5mini":
+        return OpenAIAgent(model="gpt-5-mini")
+
     elif agent_type == "LlamaAgent":
         return LlamaAgent()
 
@@ -166,74 +172,82 @@ def main():
                 )
                 while not scene_prog.finished:
                     for scene_id in scene_ids:
-                        scene_prog.update(task, advance=1)
-                        print(f"ON SCENE: {scene_id} ---")
-                        # Run the experiment by first building experiment.py which initializes the scene and simulator
-                        experiment = Experiment(
-                            scene_id,
-                            agent=agent,
-                            max_iterations=iteration,
-                            enable_python_tool=args.enable_python_tool,
-                            agent_label=agent_type,
-                        )
-                        scene = (
-                            experiment.scene
-                        )  # Initialize the scene from experiments
-                        # Default to zero_shot for every scene.
-                        scene.set_prompt_method("zero_shot")
-                        # To iterate across all methods in the future, replace the single call
-                        # above with a loop like this and adjust logging/output paths if needed:
-                        # for method in methods:
-                        #     scene.set_prompt_method(method)
-                        #     results = experiment.run_experiment()
-                        scene_number = scene.scene_number
-                        json_logger = JsonLogger(
-                            os.path.join(
-                                base_dir,
-                                f"{agent_type}",
-                                f"{scene_number}",
-                                f"log_{experiment.timestamp}.json",
-                            )
-                        )
-
                         try:
-                            results = experiment.run_experiment()
-                        except Exception as e:
-                            error_msg = str(e).lower()
-                            if (
-                                "rate limit" in error_msg
-                                or "quota" in error_msg
-                                or "maximum context length" in error_msg
-                            ):
-                                print(
-                                    f"🚫 Rate limit or quota exceeded for {agent_type}. Skipping remaining scenes.\nError: {e}"
+                            scene_prog.update(task, advance=1)
+                            print(f"ON SCENE: {scene_id} ---")
+                            # Run the experiment by first building experiment.py which initializes the scene and simulator
+                            experiment = Experiment(
+                                scene_id,
+                                agent=agent,
+                                max_iterations=iteration,
+                                enable_python_tool=args.enable_python_tool,
+                                agent_label=agent_type,
+                            )
+                            scene = (
+                                experiment.scene
+                            )  # Initialize the scene from experiments
+                            # Default to zero_shot for every scene.
+                            scene.set_prompt_method("zero_shot")
+                            # To iterate across all methods in the future, replace the single call
+                            # above with a loop like this and adjust logging/output paths if needed:
+                            # for method in methods:
+                            #     scene.set_prompt_method(method)
+                            #     results = experiment.run_experiment()
+                            scene_number = scene.scene_number
+                            json_logger = JsonLogger(
+                                os.path.join(
+                                    base_dir,
+                                    f"{agent_type}",
+                                    f"{scene_number}",
+                                    f"log_{experiment.timestamp}.json",
                                 )
-                                break  # Break out of scene loop and move on to the next model
+                            )
+
+                            try:
+                                results = experiment.run_experiment()
+                            except Exception as e:
+                                error_msg = str(e).lower()
+                                if (
+                                    "rate limit" in error_msg
+                                    or "quota" in error_msg
+                                    or "maximum context length" in error_msg
+                                ):
+                                    print(
+                                        f"🚫 Rate limit or quota exceeded for {agent_type}. Skipping remaining scenes.\nError: {e}"
+                                    )
+                                    break  # Break out of scene loop and move on to the next model
+                                else:
+                                    print(
+                                        f"⚠️ Unexpected error in scene {scene_id}: {e}"
+                                    )
+                                    continue  # Skip this scene but continue with others
+
+                            # Process results
+                            if results["answer_found"]:
+                                print("\n=== Answer Summary ===")
+                                print(f"LLM's Answer: {results['llm_answer']}")
+                                print(f"Correct Answer: {results['correct_answer']}")
+                                print(f"Answer Correct: {results['correct']}")
                             else:
-                                print(f"⚠️ Unexpected error in scene {scene_id}: {e}")
-                                continue  # Skip this scene but continue with others
+                                print("\nNo answer was provided by the LLM.")
 
-                        # Process results
-                        if results["answer_found"]:
-                            print("\n=== Answer Summary ===")
-                            print(f"LLM's Answer: {results['llm_answer']}")
-                            print(f"Correct Answer: {results['correct_answer']}")
-                            print(f"Answer Correct: {results['correct']}")
-                        else:
-                            print("\nNo answer was provided by the LLM.")
+                            # Reset the simulator after the run
+                            experiment.simulator.reset_sim()
 
-                        # Reset the simulator after the run
-                        experiment.simulator.reset_sim()
-
-                        data = Data(
-                            scene_id,
-                            log_json_path=json_logger.json_path,
-                            scene=scene,
-                            experiment=experiment,
-                            iteration=iteration,
-                            results=results,
-                        )
-                        data.summarize_scenes()
+                            data = Data(
+                                scene_id,
+                                log_json_path=json_logger.json_path,
+                                scene=scene,
+                                experiment=experiment,
+                                iteration=iteration,
+                                results=results,
+                            )
+                            data.summarize_scenes()
+                        except Exception as e:
+                            print(
+                                f"Error with loading scene {scene_id}, skipping this scene for now..."
+                            )
+                            continue
 
 
 if __name__ == "__main__":
