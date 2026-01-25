@@ -7,10 +7,13 @@ from openai import OpenAI
 from AgentClass import (
     OpenAIAgent,
     LlamaAgent,
+    Llama3370BAgent,
     GemmaAgent,
     GeminiAgent,
     AnthropicAgent,
     DeepSeekAgent,
+    Qwen25CoderAgent,
+    MixtralAgent,
 )
 from Experiment import Experiment
 from Data import Data
@@ -82,32 +85,61 @@ def initialize_agent(agent_type: str):
     """
     Initialize the correct agent based on the provided agent_type string.
     """
-    if agent_type == "OpenAIAgentGPT4omini":
+    # OpenAI Models
+    if agent_type == "OpenAIAgentGPT4o":
+        return OpenAIAgent(model="gpt-4o")
+    elif agent_type == "OpenAIAgentGPT4omini":
         return OpenAIAgent(model="gpt-4o-mini")
-
+    elif agent_type == "OpenAIAgentGPT4turbo":
+        return OpenAIAgent(model="gpt-4-turbo")
+    elif agent_type == "OpenAIAgentO1":
+        return OpenAIAgent(model="o1")
+    elif agent_type == "OpenAIAgentO1mini":
+        return OpenAIAgent(model="o1-mini")
     elif agent_type == "OpenAIAgentGPT4.1mini":
         return OpenAIAgent(model="gpt-4.1-mini")
-
     elif agent_type == "OpenAIAgentGPT4.1":
         return OpenAIAgent(model="gpt-4.1")
-
     elif agent_type == "OpenAIAgentGPT5mini":
         return OpenAIAgent(model="gpt-5-mini")
 
-    elif agent_type == "LlamaAgent":
-        return LlamaAgent()
-
-    elif agent_type == "GemmaAgent":
-        return GemmaAgent()
-
-    elif agent_type == "GeminiAgent":
-        return GeminiAgent()
-
+    # Anthropic Models
+    elif agent_type == "AnthropicAgentClaude35Sonnet":
+        return AnthropicAgent(model="claude-3-5-sonnet-20241022")
+    elif agent_type == "AnthropicAgentClaude35Haiku":
+        return AnthropicAgent(model="claude-3-5-haiku-20241022")
+    elif agent_type == "AnthropicAgentClaude37Sonnet":
+        return AnthropicAgent(model="claude-3-7-sonnet-20250219")
+    elif agent_type == "AnthropicAgentClaude4Sonnet":
+        return AnthropicAgent(model="claude-sonnet-4-20250514")
+    elif agent_type == "AnthropicAgentClaudeOpus4":
+        return AnthropicAgent(model="claude-opus-4-20250514")
     elif agent_type == "AnthropicAgent":
         return AnthropicAgent()
 
+    # Google Gemini Models
+    elif agent_type == "GeminiAgent2Flash":
+        return GeminiAgent(model_name="gemini-2.0-flash-exp")
+    elif agent_type == "GeminiAgent25Pro":
+        return GeminiAgent(model_name="gemini-2.5-pro")
+    elif agent_type == "GeminiAgent25Flash":
+        return GeminiAgent(model_name="gemini-2.5-flash")
+    elif agent_type == "GeminiAgent":
+        return GeminiAgent()
+
+    # Together.ai Open Source Models
+    elif agent_type == "LlamaAgent":
+        return LlamaAgent()
+    elif agent_type == "Llama3370BAgent":
+        return Llama3370BAgent()
+    elif agent_type == "GemmaAgent":
+        return GemmaAgent()
     elif agent_type == "DeepSeekAgent":
         return DeepSeekAgent()
+    elif agent_type == "Qwen25CoderAgent":
+        return Qwen25CoderAgent()
+    elif agent_type == "MixtralAgent":
+        return MixtralAgent()
 
     else:
         raise ValueError(
@@ -163,8 +195,6 @@ def main():
     methods = ["zero_shot", "one_shot", "one_shot_cot", "few_shot", "few_shot_cot"]
 
     for agent_type in agent_types:
-        # Initialize the agent based on the string (this part is your new dynamic agent initialization)
-        agent = initialize_agent(agent_type)
         for iteration in iterations:
             with Progress() as scene_prog:
                 task = scene_prog.add_task(
@@ -175,6 +205,10 @@ def main():
                         try:
                             scene_prog.update(task, advance=1)
                             print(f"ON SCENE: {scene_id} ---")
+
+                            # Reinitialize agent for each scene to prevent token exhaustion
+                            agent = initialize_agent(agent_type)
+
                             # Run the experiment by first building experiment.py which initializes the scene and simulator
                             experiment = Experiment(
                                 scene_id,

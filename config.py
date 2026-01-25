@@ -9,7 +9,7 @@ end_scene: int = 112  # last test scene
 
 # NOTE: Agent management
 agents: list[str] = [
-    "OpenAIAgentGPT5mini",
+    "OpenAIAgentGPT4omini",
 ]
 
 # NOTE: Experimental methods

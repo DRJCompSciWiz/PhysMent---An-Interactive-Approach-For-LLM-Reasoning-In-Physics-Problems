@@ -57,6 +57,7 @@ Submit your answer only when confident, using the answer function.""",
 class AnthropicAgent:
     def __init__(
         self,
+        model: str = "claude-3-5-sonnet-20241022",
         api_key=os.getenv("ANTHROPIC_API_KEY"),
         system_prompt="""You are an expert AI agent designed to solve physics problems by interacting directly with a physics simulator. You have access to a variety of tools to manipulate objects, query object states (position, velocity, acceleration, etc.), and simulate physics progression through time (step).
 
@@ -65,17 +66,18 @@ Here are some important guidelines for interacting with the environment:
 2) ALWAYS return actions formatted as valid JSON arrays of tool calls.
 3) Simulate time progression explicitly using the step function.
 4) Query the object states to give you better context of the environment, it will not automatically tell you this.
-             
+
 Submit your answer only when confident, using the answer function.""",
     ):
         self.api_key = api_key
         self.client = anthropic.Anthropic(api_key=self.api_key)
+        self.model = model
         self.system_prompt = system_prompt
         self.context = []
 
     def interact(self, user_input):
         msg = self.client.messages.create(
-            model="claude-3.5-haiku",
+            model=self.model,
             system=self.system_prompt,
             messages=self.context + [{"role": "user", "content": user_input}],
             max_tokens=8192,
@@ -89,6 +91,7 @@ Submit your answer only when confident, using the answer function.""",
 class GeminiAgent:
     def __init__(
         self,
+        model_name: str = "gemini-2.0-flash-exp",
         api_key=None,
         system_prompt="""You are an expert AI agent designed to solve physics problems by interacting directly with a physics simulator. You have access to a variety of tools to manipulate objects, query object states (position, velocity, acceleration, etc.), and simulate physics progression through time (step).
 
@@ -97,12 +100,12 @@ Here are some important guidelines for interacting with the environment:
 2) ALWAYS return actions formatted as valid JSON arrays of tool calls.
 3) Simulate time progression explicitly using the step function.
 4) Query the object states to give you better context of the environment, it will not automatically tell you this.
-             
+
 Submit your answer only when confident, using the answer function.""",
     ):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         configure(api_key=self.api_key)
-        self.model = GenerativeModel(model_name="gemini-2.5-pro")
+        self.model = GenerativeModel(model_name=model_name)
         self.system_prompt = system_prompt
         self.context = []
 
@@ -193,5 +196,32 @@ class DeepSeekAgent(BaseTogetherAgent):
         super().__init__(
             api_key=api_key,
             model_name="deepseek-ai/DeepSeek-R1",
+            system_prompt=system_prompt,
+        )
+
+
+class Llama3370BAgent(BaseTogetherAgent):
+    def __init__(self, api_key=None, system_prompt=None):
+        super().__init__(
+            api_key=api_key,
+            model_name="meta-llama/Llama-3.3-70B-Instruct-Turbo",
+            system_prompt=system_prompt,
+        )
+
+
+class Qwen25CoderAgent(BaseTogetherAgent):
+    def __init__(self, api_key=None, system_prompt=None):
+        super().__init__(
+            api_key=api_key,
+            model_name="Qwen/Qwen2.5-Coder-32B-Instruct",
+            system_prompt=system_prompt,
+        )
+
+
+class MixtralAgent(BaseTogetherAgent):
+    def __init__(self, api_key=None, system_prompt=None):
+        super().__init__(
+            api_key=api_key,
+            model_name="mistralai/Mixtral-8x7B-Instruct-v0.1",
             system_prompt=system_prompt,
         )
