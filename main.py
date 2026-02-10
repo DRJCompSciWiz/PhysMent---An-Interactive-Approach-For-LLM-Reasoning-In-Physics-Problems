@@ -113,7 +113,7 @@ def initialize_agent(agent_type: str):
     elif agent_type == "AnthropicAgentClaude4Sonnet":
         return AnthropicAgent(model="claude-sonnet-4-20250514")
     elif agent_type == "AnthropicAgentClaudeOpus4":
-        return AnthropicAgent(model="claude-opus-4-20250514")
+        return AnthropicAgent(model="claude-opus-4-6")
     elif agent_type == "AnthropicAgent":
         return AnthropicAgent()
 

@@ -82,6 +82,27 @@ class Experiment:
         except Exception as e:
             return f"Error executing code: {str(e)}"
         
+    def _format_results(self, results: List[Dict[str, Any]]) -> str:
+        """Compact tool results into a concise string for the LLM prompt."""
+        lines = []
+        last_time = None
+        for r in results:
+            tool = r["tool"]
+            params = r.get("parameters", {})
+            result = r.get("result")
+            last_time = r.get("sim_time", last_time)
+            params_str = ", ".join(f'{k}={json.dumps(v)}' for k, v in params.items())
+            if result is None:
+                result_str = "ok"
+            elif isinstance(result, dict) and "error" in result:
+                result_str = f"ERROR: {result['error']}"
+            else:
+                result_str = json.dumps(result) if not isinstance(result, str) else result
+            lines.append(f"{tool}({params_str}) -> {result_str}")
+        if last_time is not None:
+            lines.append(f"[sim_time={last_time}]")
+        return "\n".join(lines)
+
     def execute_tool_calls(self, tool_calls_json: str) -> tuple[List[Dict[str, Any]], int, int]:
         """
         Execute the provided tool calls, log the results, and return them along with success/error counts.
@@ -328,7 +349,7 @@ class Experiment:
                     # Improved answer validation for numerical answers
                     try:
                         # Check if dealing with numbers
-                        if (isinstance(final_answer, (int, float)) or 
+                        if (isinstance(final_answer, (int, float)) or
                             (isinstance(final_answer, str) and final_answer.replace('.', '', 1).replace('-', '', 1).isdigit())):
                             final_float = float(final_answer)
                             correct_float = float(correct_answer)
@@ -358,7 +379,7 @@ class Experiment:
                     tool_usage[tool_name] = tool_usage.get(tool_name, 0) + 1
                 num_tool_calls += len(results)  # Increment the tool call count after execution
 
-                llm_input_prompt = (f"Previous Results: {results}\n"
+                llm_input_prompt = (f"Previous Results:\n{self._format_results(results)}\n"
                                     f"IMPORTANT: You have {remaining} iterations remaining to use the 'answer' tool.\n"
                                     f"What should I do next?")
 

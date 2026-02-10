@@ -520,7 +520,7 @@ class Simulator:
                 
     def get_velocity(self, object_id: str) -> dict:
         """
-        Retrieves the velocity of an object in the simulation.
+        Retrieves the Cartesian linear velocity of an object in the simulation.
 
         Parameters:
             object_id (str): The unique identifier for the object.
@@ -531,11 +531,9 @@ class Simulator:
         try:
             if not object_id.startswith("object_"):
                 object_id = f"object_{object_id}"
-            joint_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, f"{object_id}_joint") # type: ignore
-            if joint_id == -1:
-                return {"error": f"Joint named {object_id}_joint not found."}
-            qvel_addr = self.model.jnt_dofadr[joint_id]
-            velocity = self.data.qvel[qvel_addr:qvel_addr+3]
+            body_id = self.get_body_id(object_id)
+            # data.cvel[body_id] is [wx, wy, wz, vx, vy, vz] in world frame
+            velocity = self.data.cvel[body_id][3:6]
             return {"velocity": velocity.tolist()}
         except Exception as e:
             return {"error": str(e)}
@@ -554,18 +552,15 @@ class Simulator:
             object_id = str(object_id)
             if not object_id.startswith("object_"):
                 object_id = f"object_{object_id}"
-            
-            joint_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, f"{object_id}_joint") # type: ignore
-            if joint_id == -1:
-                return {"error": f"Joint named {object_id}_joint not found."}
-            
-            qvel_addr = self.model.jnt_dofadr[joint_id]
-            current_velocity = np.array(self.data.qvel[qvel_addr:qvel_addr+3])
-            
+
+            body_id = self.get_body_id(object_id)
+            # data.cvel[body_id] is [wx, wy, wz, vx, vy, vz] in world frame
+            current_velocity = np.array(self.data.cvel[body_id][3:6])
+
             if object_id not in self.prev_velocities:
                 self.prev_velocities[object_id] = current_velocity
                 return {"x": 0.0, "y": 0.0, "z": 0.0}  # First call, assume no acceleration
-            
+
             previous_velocity = self.prev_velocities[object_id]
             acceleration = (current_velocity - previous_velocity) / self.model.opt.timestep
             self.prev_velocities[object_id] = current_velocity
@@ -575,7 +570,7 @@ class Simulator:
                 "y": float(acceleration[1]),
                 "z": float(acceleration[2])
             }
-            
+
         except Exception as e:
             return {"error": str(e)}
 
@@ -614,28 +609,18 @@ class Simulator:
             dict: A dictionary containing the torque acting on the object.
         """
         try:
-            # Ensure object_id is a string, and handle conversion if it's an integer
             object_id = str(object_id)
+            if not object_id.startswith("object_"):
+                object_id = f"object_{object_id}"
 
-            # Convert object_id to an integer if it's valid
-            try:
-                obj_index = int(object_id)
-            except ValueError:
-                raise ValueError(f"Invalid object_id format: {object_id}. Expected an integer ID.")
-            
-            # Ensure the index is within the bounds of the qfrc_applied array
-            start_index = obj_index * 6 + 3
-            end_index = obj_index * 6 + 6
+            body_id = self.get_body_id(object_id)
 
-            if start_index >= len(self.data.qfrc_applied) or end_index > len(self.data.qfrc_applied):
-                raise IndexError(f"Index out of bounds: {start_index}-{end_index}.")
-            
-            # Extract the torque values
-            torque = self.data.qfrc_applied[start_index:end_index]
-            torque_dict = {"x": torque[0], "y": torque[1], "z": torque[2]}
-            
+            # xfrc_applied stores [force(3), torque(3)] per body
+            torque = self.data.xfrc_applied[body_id][3:6]
+            torque_dict = {"x": float(torque[0]), "y": float(torque[1]), "z": float(torque[2])}
+
             return {"torque": torque_dict}
-        
+
         except Exception as e:
             logging.error(f"Error in get_torque for object_id='{object_id}': {str(e)}")
             return {"error": str(e)}
@@ -855,12 +840,9 @@ class Simulator:
         try:
             if not object_id.startswith("object_"):
                 object_id = f"object_{object_id}"
-            joint_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, f"{object_id}_joint")
-            if joint_id == -1:
-                return {"error": f"Joint named {object_id}_joint not found."}
-            qvel_addr = self.model.jnt_dofadr[joint_id]
-            # For a free joint, angular velocity is at indices 3, 4, 5 (after linear velocity)
-            angular_velocity = self.data.qvel[qvel_addr + 3:qvel_addr + 6]
+            body_id = self.get_body_id(object_id)
+            # data.cvel[body_id] is [wx, wy, wz, vx, vy, vz] in world frame
+            angular_velocity = self.data.cvel[body_id][0:3]
             return {"angular_velocity": angular_velocity.tolist()}
         except Exception as e:
             return {"error": str(e)}
