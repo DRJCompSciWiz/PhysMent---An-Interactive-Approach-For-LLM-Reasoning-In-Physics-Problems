@@ -58,7 +58,7 @@ class Scene:
         """
         self.scene_id = scene_id
         self.simulator = simulator
-        self.enable_python_tool = random.choice([True, False])
+        self.enable_python_tool = enable_python_tool
         self.prompt_method = "one_shot_with_cot"  # Default method
         self.scene_number = int(self.scene_id)
         script_dir = os.path.dirname(os.path.abspath(__file__))
