@@ -209,11 +209,11 @@ class Llama3370BAgent(BaseTogetherAgent):
         )
 
 
-class Qwen25CoderAgent(BaseTogetherAgent):
+class QwenAgent(BaseTogetherAgent):
     def __init__(self, api_key=None, system_prompt=None):
         super().__init__(
             api_key=api_key,
-            model_name="Qwen/Qwen2.5-Coder-32B-Instruct",
+            model_name="Qwen/Qwen3.5-397B-A17B",
             system_prompt=system_prompt,
         )
 
@@ -223,5 +223,23 @@ class MixtralAgent(BaseTogetherAgent):
         super().__init__(
             api_key=api_key,
             model_name="mistralai/Mixtral-8x7B-Instruct-v0.1",
+            system_prompt=system_prompt,
+        )
+
+
+class KimiAgent(BaseTogetherAgent):
+    def __init__(self, api_key=None, model_name=None, system_prompt=None):
+        super().__init__(
+            api_key=api_key,
+            model_name="moonshotai/Kimi-K2.5",
+            system_prompt=system_prompt,
+        )
+
+
+class GLMAgent(BaseTogetherAgent):
+    def __init__(self, api_key=None, model_name=None, system_prompt=None):
+        super().__init__(
+            api_key=api_key,
+            model_name="zai-org/GLM-5",
             system_prompt=system_prompt,
         )

@@ -7,7 +7,7 @@ iterations: list[int] = [
 start_scene: int = 7  # first test scene
 end_scene: int = 112  # last test scene
 
-# NOTE: Agent management
+# NOTE: Agent management, leave as GPT in repo but change to what you are testing
 agents: list[str] = [
     "OpenAIAgentGPT4omini",
 ]

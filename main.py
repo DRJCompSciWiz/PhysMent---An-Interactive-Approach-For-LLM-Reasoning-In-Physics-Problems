@@ -5,6 +5,7 @@ import logging
 
 from openai import OpenAI
 from AgentClass import (
+    KimiAgent,
     OpenAIAgent,
     LlamaAgent,
     Llama3370BAgent,
@@ -140,6 +141,8 @@ def initialize_agent(agent_type: str):
         return Qwen25CoderAgent()
     elif agent_type == "MixtralAgent":
         return MixtralAgent()
+    elif agent_type == "KimiAgent":
+        return KimiAgent()
 
     else:
         raise ValueError(
