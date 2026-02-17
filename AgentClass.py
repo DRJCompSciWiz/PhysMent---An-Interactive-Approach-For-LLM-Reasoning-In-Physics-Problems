@@ -1,18 +1,5 @@
 import os
-import openai
-from openai import OpenAI
-from openai.types.chat import (
-    ChatCompletionSystemMessageParam,
-    ChatCompletionUserMessageParam,
-    ChatCompletionAssistantMessageParam,
-)
-import anthropic
-import together
-import google.generativeai as genai
-from google.generativeai.generative_models import GenerativeModel
-from google.generativeai.client import configure
 from dotenv import load_dotenv
-import backoff
 
 load_dotenv()
 
@@ -21,7 +8,7 @@ class OpenAIAgent:
     def __init__(
         self,
         model: str,
-        api_key=os.getenv("OPENAI_API_KEY"),
+        api_key=None,
         system_prompt="""You are an expert AI agent designed to solve physics problems by interacting directly with a physics simulator. You have access to a variety of tools to manipulate objects, query object states (position, velocity, acceleration, etc.), and simulate physics progression through time (step).
 
 Here are some important guidelines for interacting with the environment:
@@ -29,11 +16,21 @@ Here are some important guidelines for interacting with the environment:
 2) ALWAYS return actions formatted as valid JSON arrays of tool calls.
 3) Simulate time progression explicitly using the step function.
 4) Query the object states to give you better context of the environment, it will not automatically tell you this.
-             
+
 Submit your answer only when confident, using the answer function.""",
     ):
+        import openai
+        import backoff
+        from openai.types.chat import (
+            ChatCompletionSystemMessageParam,
+            ChatCompletionUserMessageParam,
+            ChatCompletionAssistantMessageParam,
+        )
+
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         openai.api_key = self.api_key
+        self._openai = openai
+        self._backoff = backoff
         self.system_prompt = system_prompt
         self.model = model
         self.context: list[
@@ -42,23 +39,27 @@ Submit your answer only when confident, using the answer function.""",
             | ChatCompletionAssistantMessageParam
         ] = [{"role": "system", "content": system_prompt}]
 
-    # NOTE: added backoff to this for Rate Limit error
-    @backoff.on_exception(backoff.expo, openai.RateLimitError)
     def interact(self, user_input):
-        self.context.append({"role": "user", "content": user_input})
-        response = openai.chat.completions.create(
-            model=self.model, messages=self.context
-        )
-        ai_message = response.choices[0].message.content
-        self.context.append({"role": "assistant", "content": ai_message})
-        return ai_message
+        openai = self._openai
+
+        @self._backoff.on_exception(self._backoff.expo, openai.RateLimitError)
+        def _call():
+            self.context.append({"role": "user", "content": user_input})
+            response = openai.chat.completions.create(
+                model=self.model, messages=self.context
+            )
+            ai_message = response.choices[0].message.content
+            self.context.append({"role": "assistant", "content": ai_message})
+            return ai_message
+
+        return _call()
 
 
 class AnthropicAgent:
     def __init__(
         self,
         model: str = "claude-3-5-sonnet-20241022",
-        api_key=os.getenv("ANTHROPIC_API_KEY"),
+        api_key=None,
         system_prompt="""You are an expert AI agent designed to solve physics problems by interacting directly with a physics simulator. You have access to a variety of tools to manipulate objects, query object states (position, velocity, acceleration, etc.), and simulate physics progression through time (step).
 
 Here are some important guidelines for interacting with the environment:
@@ -69,7 +70,9 @@ Here are some important guidelines for interacting with the environment:
 
 Submit your answer only when confident, using the answer function.""",
     ):
-        self.api_key = api_key
+        import anthropic
+
+        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         self.client = anthropic.Anthropic(api_key=self.api_key)
         self.model = model
         self.system_prompt = system_prompt
@@ -103,6 +106,10 @@ Here are some important guidelines for interacting with the environment:
 
 Submit your answer only when confident, using the answer function.""",
     ):
+        import google.generativeai as genai
+        from google.generativeai.generative_models import GenerativeModel
+        from google.generativeai.client import configure
+
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         configure(api_key=self.api_key)
         self.model = GenerativeModel(model_name=model_name)
@@ -123,12 +130,10 @@ Submit your answer only when confident, using the answer function.""",
         return ai_message
 
 
-import os
-from together import Together
-
-
 class BaseTogetherAgent:
     def __init__(self, api_key=None, model_name=None, system_prompt=None):
+        from together import Together
+
         self.api_key = api_key or os.getenv("TOGETHER_API_KEY")
         self.client = Together(api_key=self.api_key)
         self.model_name = model_name

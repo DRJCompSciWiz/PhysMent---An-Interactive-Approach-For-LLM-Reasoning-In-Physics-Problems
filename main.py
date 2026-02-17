@@ -3,8 +3,8 @@ import os
 import json
 import logging
 
-from openai import OpenAI
 from AgentClass import (
+    GLMAgent,
     KimiAgent,
     OpenAIAgent,
     LlamaAgent,
@@ -13,7 +13,7 @@ from AgentClass import (
     GeminiAgent,
     AnthropicAgent,
     DeepSeekAgent,
-    Qwen25CoderAgent,
+    QwenAgent,
     MixtralAgent,
 )
 from Experiment import Experiment
@@ -137,12 +137,14 @@ def initialize_agent(agent_type: str):
         return GemmaAgent()
     elif agent_type == "DeepSeekAgent":
         return DeepSeekAgent()
-    elif agent_type == "Qwen25CoderAgent":
-        return Qwen25CoderAgent()
+    elif agent_type == "QwenAgent":
+        return QwenAgent()
     elif agent_type == "MixtralAgent":
         return MixtralAgent()
     elif agent_type == "KimiAgent":
         return KimiAgent()
+    elif agent_type == "GLMAgent":
+        return GLMAgent()
 
     else:
         raise ValueError(

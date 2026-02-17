@@ -1,6 +1,6 @@
 # NOTE: Testing configs
 iterations: list[int] = [
-    5,
+    10,
 ]  # iterations LLM gets before hard stop
 
 # NOTE: FIX NUMBERING SCHEMA LATER...THIS IS JUST A TEMP FIX
@@ -9,7 +9,7 @@ end_scene: int = 112  # last test scene
 
 # NOTE: Agent management, leave as GPT in repo but change to what you are testing
 agents: list[str] = [
-    "OpenAIAgentGPT4omini",
+    "DeepSeekAgent",
 ]
 
 # NOTE: Experimental methods

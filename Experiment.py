@@ -5,7 +5,7 @@ import logging
 from dotenv import load_dotenv
 from Simulator import Simulator
 from Scene import Scene
-from AgentClass import OpenAIAgent, LlamaAgent, GemmaAgent, GeminiAgent, AnthropicAgent, DeepSeekAgent
+from AgentClass import OpenAIAgent, LlamaAgent, GemmaAgent, GeminiAgent, AnthropicAgent, DeepSeekAgent, BaseTogetherAgent, KimiAgent, GLMAgent, QwenAgent, MixtralAgent, Llama3370BAgent
 from typing import Any, Dict, List
 from datetime import datetime
 
@@ -30,7 +30,7 @@ class Experiment:
         self.name_of_agent = agent_label or agent.__class__.__name__
         self.simulator = Simulator(scene_id, agent.__class__.__name__)  # Create the Simulator object
         self.scene = Scene(scene_id, enable_python_tool=self.enable_python_tool, simulator=self.simulator)  # Initialize Scene with the simulator
-        self.agent = agent if isinstance(agent, (OpenAIAgent, LlamaAgent, GemmaAgent, GeminiAgent, AnthropicAgent, DeepSeekAgent)) else OpenAIAgent(model="gpt-4o-mini", api_key=api_key) # Initialize AI agent with the API key
+        self.agent = agent if isinstance(agent, (OpenAIAgent, LlamaAgent, GemmaAgent, GeminiAgent, AnthropicAgent, DeepSeekAgent, BaseTogetherAgent)) else OpenAIAgent(model="gpt-4o-mini", api_key=api_key) # Initialize AI agent with the API key
         self.timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         log_filename = f"summary_{self.timestamp}.txt"
         self.log_dir = os.path.join(os.getcwd(), "TestResults", self.name_of_agent, f"{self.scene.scene_number}")
