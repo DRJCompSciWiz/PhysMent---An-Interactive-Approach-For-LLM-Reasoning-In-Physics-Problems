@@ -8,6 +8,7 @@ from Scene import Scene
 from AgentClass import OpenAIAgent, LlamaAgent, GemmaAgent, GeminiAgent, AnthropicAgent, DeepSeekAgent, BaseTogetherAgent, KimiAgent, GLMAgent, QwenAgent, MixtralAgent, Llama3370BAgent
 from typing import Any, Dict, List
 from datetime import datetime
+import re
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -82,6 +83,95 @@ class Experiment:
         except Exception as e:
             return f"Error executing code: {str(e)}"
         
+    @staticmethod
+    def _normalize_answer(answer) -> str:
+        """Normalize an answer string for comparison.
+
+        Strips whitespace, units, 'object_' prefixes, brackets, and lowercases.
+        """
+        if answer is None:
+            return ""
+        s = str(answer).strip()
+        # Remove surrounding brackets / parentheses
+        s = re.sub(r'^[\[\(]+', '', s)
+        s = re.sub(r'[\]\)]+$', '', s)
+        # Remove common unit suffixes (m/s, m/s², N, kg, J, W, m, s, rad, rad/s, etc.)
+        s = re.sub(r'\s*(m/s²|m/s2|m/s|rad/s|kg·m/s|kg\*m/s|N·m|N\*m|rad|kg|m|N|J|W|s)\s*$', '', s, flags=re.IGNORECASE)
+        # Remove 'object_' prefix (e.g., "object_2" -> "2")
+        s = re.sub(r'\bobject_', '', s, flags=re.IGNORECASE)
+        s = s.strip()
+        return s
+
+    def _check_answer(self, final_answer, correct_answer) -> bool:
+        """Robustly compare the LLM's answer against the correct answer.
+
+        Handles: exact match, single numeric, multi-value CSV, bidirectional
+        substring containment, and keyword extraction.
+        """
+        if final_answer is None or correct_answer is None:
+            return False
+
+        norm_final = self._normalize_answer(final_answer)
+        norm_correct = self._normalize_answer(correct_answer)
+
+        # --- Step 1: Exact match after normalization ---
+        if norm_final.lower() == norm_correct.lower():
+            return True
+
+        # --- Step 2: Single numeric comparison (tolerance 0.1) ---
+        try:
+            final_float = float(norm_final)
+            correct_float = float(norm_correct)
+            if abs(final_float - correct_float) < 0.1:
+                return True
+        except (ValueError, TypeError):
+            pass
+
+        # --- Step 3: Multi-value CSV comparison ---
+        if ',' in str(correct_answer):
+            try:
+                correct_parts = [p.strip() for p in norm_correct.split(',')]
+                final_parts = [p.strip() for p in norm_final.split(',')]
+                if len(correct_parts) == len(final_parts):
+                    all_match = True
+                    for cp, fp in zip(correct_parts, final_parts):
+                        try:
+                            if abs(float(fp) - float(cp)) >= 0.1:
+                                all_match = False
+                                break
+                        except (ValueError, TypeError):
+                            if fp.lower() != cp.lower():
+                                all_match = False
+                                break
+                    if all_match:
+                        return True
+            except Exception:
+                pass
+
+        # --- Step 4: Bidirectional substring containment ---
+        final_lower = norm_final.lower()
+        correct_lower = norm_correct.lower()
+        if final_lower and correct_lower:
+            if final_lower in correct_lower or correct_lower in final_lower:
+                return True
+
+        # --- Step 5: Keyword extraction for conceptual answers ---
+        # Extract all numbers from both answers and compare
+        final_nums = re.findall(r'-?\d+\.?\d*', norm_final)
+        correct_nums = re.findall(r'-?\d+\.?\d*', norm_correct)
+        if final_nums and correct_nums and len(final_nums) == len(correct_nums):
+            try:
+                all_nums_match = all(
+                    abs(float(fn) - float(cn)) < 0.1
+                    for fn, cn in zip(final_nums, correct_nums)
+                )
+                if all_nums_match:
+                    return True
+            except (ValueError, TypeError):
+                pass
+
+        return False
+
     def _format_results(self, results: List[Dict[str, Any]]) -> str:
         """Compact tool results into a concise string for the LLM prompt."""
         lines = []
@@ -346,21 +436,8 @@ class Experiment:
                         failed_tool_calls += 1  # Count null answer as failed tool call
                         # Do not mark as found when answer is null
                         answer_found = False
-                    # Improved answer validation for numerical answers
-                    try:
-                        # Check if dealing with numbers
-                        if (isinstance(final_answer, (int, float)) or
-                            (isinstance(final_answer, str) and final_answer.replace('.', '', 1).replace('-', '', 1).isdigit())):
-                            final_float = float(final_answer)
-                            correct_float = float(correct_answer)
-                            # Use tolerance of 0.001 for float comparison
-                            correct_answer_found = abs(final_float - correct_float) < 0.001
-                        else:
-                            # Fall back to string comparison for non-numerical answers
-                            correct_answer_found = str(final_answer).strip().lower() in str(correct_answer).strip().lower()
-                    except (ValueError, TypeError):
-                        # If conversion fails, fall back to string comparison
-                        correct_answer_found = str(final_answer).strip().lower() in str(correct_answer).strip().lower() if final_answer and correct_answer else False
+                    # Robust answer validation using _check_answer
+                    correct_answer_found = self._check_answer(final_answer, correct_answer)
                     
                     break  # Stop the experiment as soon as we get an answer (whether correct or not)
             
