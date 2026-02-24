@@ -196,7 +196,7 @@ class Scene:
             {"name": "get_angular_momentum", "description": "returns the angular momentum of an object", "arguments": {"object_id": "str", "mass": "float"}, "return type": {"angular_momentum": {"x": "float", "y": "float", "z": "float"}}},
             {"name": "change_position", "description": "translates an object by some delta in the local or world frame", "arguments": {"object_id": "str", "dx": "float", "dy": "float", "dz": "float", "in_world_frame": "bool"}, "return type": {"new_position": {"x": "float", "y": "float", "z": "float"}}},
             {"name": "quat_to_rot_matrix", "description": "converts a quaternion into a 3x3 rotation matrix", "arguments": {"q": "list[float]"}, "return type": {"rotation_matrix": "array[3][3]"}},
-            {"name": "answer", "description": "submits an answer back to the system for checking or logging", "arguments": {"answer": "str or float"}, "return type": {"acknowledged": "bool"}},
+            {"name": "answer", "description": "submits your final answer. For numeric answers, provide just the number (no units). For comparison answers, provide just the object id number (e.g. 2, not object_2). For multi-value answers, separate values with commas (e.g. 20.2, 69.4).", "arguments": {"answer": "str or float"}, "return type": {"acknowledged": "bool"}},
             {"name": "create_objects", "description": "creates a new object in the simulation and adds it to the scene", "arguments": {"name": "str", "pos": "list", "density": "float", "rgba": "list"}, "return type": {"status": "str", "name": "str", "position": "list", "density": "float", "rgba": "list"}},
             {"name": "delete_objects", "description": "deletes an object from the simulation by its ID", "arguments": {"object_id": "str"}, "return type": {"status": "str", "object_id": "str"}},
             {"name": "find_objects", "description": "finds and updates all objects in the scene by modifying their rgba properties", "arguments": {}, "return type": {"status": "str"}},
@@ -314,18 +314,20 @@ class Scene:
         # Append additional instructions based on problem type
         if self.problem_type == "comparison":
             self.prompt += (
-                f"\n\nSince this problem is a comparison problem, your answer should be the object id number of the object that satisfies the task."
-                f"\nIf all objects being compared to each other satisfy the task, output 0. "
-                f"\nIf some satisfy the task, while other objects do not, output the object id's of the objects that satisfy the task, separated by commas."
+                f"\n\nSince this problem is a comparison problem, your answer should be the object id number (as a plain number, e.g. `2`, NOT `object_2`) of the object that satisfies the task."
+                f"\nIf all objects being compared to each other satisfy the task, output `0`. "
+                f"\nIf some satisfy the task, while other objects do not, output the object id numbers of the objects that satisfy the task, separated by commas."
             )
         elif self.problem_type == "computation" or "calculation" in self.problem_type:
             self.prompt += (
-                f"\n\nSince the problem is a computation problem, your answer should be the calculated number that satisfies the task"
+                f"\n\nSince the problem is a computation problem, your answer should be ONLY the calculated number that satisfies the task,"
                 f"\nrounded to the nearest thousandths place if applicable."
+                f"\nDo NOT include units (e.g. output `3.27` not `3.27 m/s`)."
+                f"\nIf the task asks for multiple values, separate them with commas (e.g. `20.2, 69.4`)."
             )
         elif self.problem_type == "boolean":
             self.prompt += (
-                f"\n\nSince the problem is a true or false question, output 0 for true, and 1 for false."
+                f"\n\nSince the problem is a true or false question, output `0` for true, and `1` for false."
             )
 
         self.prompt += (
