@@ -1,0 +1,656 @@
+=== Experiment Log for 57 ===
+
+
+--- Iteration 1 ---
+LLM Input Prompt Below:
+You are trying to analyze a physics problem given by the scene_id. The goal is to interact with the environment to determine a correct numeric answer.
+
+Scene Description: Static Friction Threshold.
+Task: Find the minimum force required to overcome static friction and make the block slide..
+Available Objects and Parameters:
+Object id: object_1, Object name: block, body_pos: [0.0, 0.0, 1.0], geom_type: box, geom_size: [0.5, 0.5, 0.5], geom_density: [1.0]
+Object id: object_2, Object name: table, body_pos: [0.0, 0.0, 0.0], geom_type: box, geom_size: [5.0, 5.0, 0.1]
+Object id: object_3, Object name: ground, body_pos: [0.0, 0.0, 5.0], geom_type: plane, geom_size: [30.0, 30.0, 0.1]
+Mass: The mass of the object is not given directly, but can be calculated using the object's size/radius and density if available.
+
+Quaternion: A quaternion is used to represent rotation in 3D space. The four numbers represent rotations along the X, Y, Z axes and a scalar component.
+
+If an attribute has 'n/a' right beside it, that means you CANNOT access that attributes value, so keep that in mind when running through the experiment.
+
+ If there are multiple numbers in the attribute, note that they are in the form of an array to specify the different parameters of the attribute.
+
+
+You may use the following tools along with their description to interact with the scene. These functions accept parameters given below, and return data or perform simulation updates:
+[
+  {
+    "name": "step",
+    "description": "keeps on moving the simulator forward in time",
+    "arguments": {
+      "duration": "float"
+    },
+    "return type": {
+      "results": null
+    }
+  },
+  {
+    "name": "apply_force",
+    "description": "applies a force vector to an object",
+    "arguments": {
+      "object_id": "str",
+      "force_vector": "list[float]"
+    },
+    "return type": {
+      "status": "str",
+      "object_id": "int",
+      "force": "list[float]"
+    }
+  },
+  {
+    "name": "get_velocity",
+    "description": "retrieves the velocity vector of an object",
+    "arguments": {
+      "object_id": "str"
+    },
+    "return type": {
+      "velocity": "array"
+    }
+  },
+  {
+    "name": "detect_collision",
+    "description": "checks if two objects have collided",
+    "arguments": {
+      "obj1_id": "str",
+      "obj2_id": "str"
+    },
+    "return type": {
+      "collision_detected": "bool"
+    }
+  },
+  {
+    "name": "get_parameters",
+    "description": "fetches physical parameters like mass, bounding box, and type",
+    "arguments": {
+      "object_id": "str // REMEMBER THAT YOU WRITE IT AS AN F-STRING THAT IS object_(object id), where object id is an integer"
+    },
+    "return type": {
+      "mass": "float",
+      "bounding_box": "list[float]",
+      "type": "int"
+    }
+  },
+  {
+    "name": "move_object",
+    "description": "sets an object's position to a new coordinate",
+    "arguments": {
+      "object_id": "str",
+      "x": "float",
+      "y": "float",
+      "z": "float"
+    },
+    "return type": {
+      "position": "tuple[float, float, float]"
+    }
+  },
+  {
+    "name": "get_position",
+    "description": "gets the current position and time of an object",
+    "arguments": {
+      "object_id": "str"
+    },
+    "return type": {
+      "position": "tuple[float, float, float]",
+      "time": "float"
+    }
+  },
+  {
+    "name": "get_displacement",
+    "description": "gets how far an object has moved from its initial position",
+    "arguments": {
+      "object_id": "str"
+    },
+    "return type": {
+      "displacement": "float"
+    }
+  },
+  {
+    "name": "compute_force",
+    "description": "calculates the force on an object using F = ma",
+    "arguments": {
+      "object_id": "str",
+      "mass": "float"
+    },
+    "return type": {
+      "x": "float",
+      "y": "float",
+      "z": "float"
+    }
+  },
+  {
+    "name": "get_acceleration",
+    "description": "returns the current acceleration vector of an object",
+    "arguments": {
+      "object_id": "str"
+    },
+    "return type": {
+      "x": "float",
+      "y": "float",
+      "z": "float"
+    }
+  },
+  {
+    "name": "set_velocity",
+    "description": "sets the velocity vector of an object",
+    "arguments": {
+      "object_id": "str",
+      "velocity_vector": "list[float]"
+    },
+    "return type": {
+      "status": "str",
+      "object_id": "int",
+      "velocity": "list[float]"
+    }
+  },
+  {
+    "name": "apply_torque",
+    "description": "applies a torque to an object",
+    "arguments": {
+      "object_id": "str",
+      "torque_vector": "list[float]"
+    },
+    "return type": {
+      "status": "str",
+      "object_id": "int",
+      "torque": "list[float]"
+    }
+  },
+  {
+    "name": "get_torque",
+    "description": "returns the torque acting on an object",
+    "arguments": {
+      "object_id": "str"
+    },
+    "return type": {
+      "torque": {
+        "x": "float",
+        "y": "float",
+        "z": "float"
+      }
+    }
+  },
+  {
+    "name": "get_center_of_mass",
+    "description": "gets the center of mass of the entire scene",
+    "arguments": {},
+    "return type": {
+      "center_of_mass": {
+        "x": "float",
+        "y": "float",
+        "z": "float"
+      }
+    }
+  },
+  {
+    "name": "get_potential_energy",
+    "description": "calculates the potential energy of an object using PE = m * g * h",
+    "arguments": {
+      "object_id": "str",
+      "mass": "float",
+      "gravity": "float = 9.81"
+    },
+    "return type": {
+      "potential_energy": "float"
+    }
+  },
+  {
+    "name": "get_kinetic_energy",
+    "description": "calculates the kinetic energy of an object using KE = 0.5 * m * v^2",
+    "arguments": {
+      "object_id": "str",
+      "mass": "float"
+    },
+    "return type": {
+      "kinetic_energy": "float"
+    }
+  },
+  {
+    "name": "get_rotational_energy",
+    "description": "calculates the rotational energy of an object",
+    "arguments": {
+      "object_id": "str",
+      "mass": "float"
+    },
+    "return type": {
+      "rotational_energy": "float"
+    }
+  },
+  {
+    "name": "get_momentum",
+    "description": "calculates the linear momentum of an object using p = m * v",
+    "arguments": {
+      "object_id": "str",
+      "mass": "float"
+    },
+    "return type": {
+      "momentum": {
+        "x": "float",
+        "y": "float",
+        "z": "float"
+      }
+    }
+  },
+  {
+    "name": "get_angular_momentum",
+    "description": "returns the angular momentum of an object",
+    "arguments": {
+      "object_id": "str",
+      "mass": "float"
+    },
+    "return type": {
+      "angular_momentum": {
+        "x": "float",
+        "y": "float",
+        "z": "float"
+      }
+    }
+  },
+  {
+    "name": "change_position",
+    "description": "translates an object by some delta in the local or world frame",
+    "arguments": {
+      "object_id": "str",
+      "dx": "float",
+      "dy": "float",
+      "dz": "float",
+      "in_world_frame": "bool"
+    },
+    "return type": {
+      "new_position": {
+        "x": "float",
+        "y": "float",
+        "z": "float"
+      }
+    }
+  },
+  {
+    "name": "quat_to_rot_matrix",
+    "description": "converts a quaternion into a 3x3 rotation matrix",
+    "arguments": {
+      "q": "list[float]"
+    },
+    "return type": {
+      "rotation_matrix": "array[3][3]"
+    }
+  },
+  {
+    "name": "answer",
+    "description": "submits an answer back to the system for checking or logging",
+    "arguments": {
+      "answer": "str or float"
+    },
+    "return type": {
+      "acknowledged": "bool"
+    }
+  },
+  {
+    "name": "create_objects",
+    "description": "creates a new object in the simulation and adds it to the scene",
+    "arguments": {
+      "name": "str",
+      "pos": "list",
+      "density": "float",
+      "rgba": "list"
+    },
+    "return type": {
+      "status": "str",
+      "name": "str",
+      "position": "list",
+      "density": "float",
+      "rgba": "list"
+    }
+  },
+  {
+    "name": "delete_objects",
+    "description": "deletes an object from the simulation by its ID",
+    "arguments": {
+      "object_id": "str"
+    },
+    "return type": {
+      "status": "str",
+      "object_id": "str"
+    }
+  },
+  {
+    "name": "find_objects",
+    "description": "finds and updates all objects in the scene by modifying their rgba properties",
+    "arguments": {},
+    "return type": {
+      "status": "str"
+    }
+  },
+  {
+    "name": "attach_objects",
+    "description": "attaches two objects together in the simulation by creating a joint between them",
+    "arguments": {
+      "object1_id": "str",
+      "object2_id": "str"
+    },
+    "return type": {
+      "status": "str"
+    }
+  }
+]
+
+Every time you call a tool, you will receive a dictionary containing the outputs. For example, if you call `get_velocity` on `object_1`, the return might be:
+{"vx": 0.0, "vy": -3.2, "vz": 0.0}
+
+You only have **one chance** to answer the question. When you're confident, submit your final answer using:
+`{"tool": "answer", "parameters": {"answer": "<your_answer>"}}`
+
+
+
+***FINAL GUIDELINES***
+
+You must call `step` to simulate time progression.
+
+1 simulation step is 0.005 real life seconds, and ALL problems are based off of real life time if seconds are mentioned in the task.
+
+Do not make any assumptions about the positions or states of objects, if you are unsure you can use tools get this information.
+
+The z plane is the vertical plane, and the x and y planes are the horizontal planes.
+
+When answering, use the world coordinate frame with signed values: +x, +y, +z are the positive directions; motion or quantities in the opposite directions must be negative. Report signed vectors and scalars accordingly.
+
+Understand that you can use the tools to gather necessary information pertainig to all objects in the scene, not just the one you are trying to analyze.
+
+If your json format is incorrect - the environment will tell you and the simulator will remain in the same state. If one of your tool calls has incorrect formatting, the previous tool calls will successfully execute but the incorrect tool and subsequent tools will not execute. You will see how your tool call was incorrect and get a chance to retry in the next iteration.
+
+Remember that YOU MUST PROVIDE YOUR REASONING FOR EVERY ACTION you take, and then make sure to add a valid JSON format of an array of tool calls.
+
+***When you are trying to call functions, use a string that goes as object_{object_id} for the object id, and use the name of the function as the tool name.***
+
+ For example, if you were to try and call the function get_velocity on object_1, you would write it as:
+```json
+[{"tool": "get_velocity", "parameters": {"object_id": "object_1"}}]
+```
+
+ RATHER THAN WRITING IT AS:
+```json
+[{"tool": "get_velocity", "parameters": {"object_id": 1}}]
+```
+
+Remember that when giving multiple tool calls, you must give them in ONE SINGLE GO, as shown below.
+```json
+[{"tool": "get_velocity", "parameters": {"object_id": "object_1"}},{"tool": "get_velocity", "parameters": {"object_id": "object_2"}}]
+```
+and so on and so forth.
+
+ As you input multiple tool calls, the simulator will run each of them sequentially, and then return the results of each tool call in the order they were called.
+
+ DO NOT GIVE MORE THAN ONE SET OF TOOL CALLS AT A TIME, OR THE SIMULATOR WILL NOT WORK, AND END UP GIVING YOU AN ERROR FOR JSON SYNTAX!!!
+
+
+LLM Response Below:
+<think>
+We are given the task: Find the minimum force required to overcome static friction and make the block slide.
+ The block is object_1, and it is resting on the table (object_2). The ground (object_3) is a plane far below, so we can ignore it for friction.
+
+ Steps:
+ 1. We need to know the mass of the block to calculate the normal force and then the maximum static friction.
+ 2. The maximum static friction force is given by: F_friction_max = μ_s * N, where N is the normal force.
+ 3. The normal force N for an object on a horizontal surface is equal to its weight (if no other vertical forces) so N = m * g.
+ 4. However, we are not given the coefficient of static friction (μ_s) explicitly. We must determine it by experiment.
+
+ But note: the problem does not provide μ_s. How can we find the minimum force without μ_s?
+ Let me reexamine the scene: the objects are defined, but friction coefficients are not provided.
+
+ Alternative approach:
+ We can experimentally determine the minimum force by applying increasing horizontal forces until the block starts to move.
+
+ Plan:
+ 1. Get the mass of the block (object_1) using `get_parameters`.
+ 2. We note that the block is initially at rest. We can apply a force in the x-direction (for example) and check if it moves.
+ 3. We can use a binary search to find the minimum force that causes the block to slide.
+
+ However, note that we are only allowed to submit one set of tool calls at a time and then we must answer. We cannot run a loop.
+
+ But we can design a sequence of actions:
+
+ Step 1: Get the mass of the block.
+ Step 2: Since we don't know μ_s, we can try to apply a force and see if it moves. But we must be efficient.
+
+ However, the problem says "minimum force", so we must find the exact value? But without knowing μ_s, we must rely on simulation.
+
+ But note: the simulator has a fixed time step. We can apply a force for a short duration and then check the velocity.
+
+ However, static friction is instantaneous: we need to apply a force that is just above the static friction threshold.
+
+ How about:
+  - Apply a force F in the x-direction for a very short time (say 0.01 seconds) and then check if the block has moved (or has non-zero velocity).
+  - If it moves, then F is above the threshold. If not, we need a larger F.
+
+ But we cannot run multiple trials in one go? We are only allowed one chance to answer.
+
+ We must use the tools to get the necessary information and then compute the answer without multiple trials.
+
+ Alternatively, we can use the fact that the static friction force is equal to the applied force until it reaches the maximum. So if we apply a force and the block doesn't move, then the static friction is exactly balancing it.
+
+ However, we cannot measure the friction force directly.
+
+ Another idea: use the `get_acceleration` tool? But if the block is not moving, acceleration is zero. When the applied force exceeds static friction, the block will accelerate.
+
+ But note: we can apply a force and then immediately check the acceleration? However, the simulator might require a step to compute.
+
+ Steps for one trial:
+  - Apply a force F in the x-direction to the block.
+  - Step the simulation for a very short time (e.g., 0.001 seconds) to let the physics update.
+  - Get the acceleration in the x-direction. If it is non-zero, then F is greater than the maximum static friction.
+
+ But we don't know F_min. We need to find it by trial and error? But we are limited to one set of actions.
+
+ We must think: is there a way to get the friction coefficient from the simulator? The tools don't provide it.
+
+ Alternatively, we can use the `get_parameters` tool to see if it returns friction parameters? The tool returns mass, bounding_box, and type. It doesn't return friction.
+
+ Therefore, we must use an experimental method.
+
+ However, note: the problem says "static friction threshold", and we are to find the minimum force. We are allowed to use the tools to simulate and measure.
+
+ But we are only allowed one set of tool calls? Actually, we can call multiple tools in one go (as an array) and then the simulator will run them sequentially and return the results.
+
+ We can design a binary search in one go? But we are limited to the number of tool calls we can make in one array? The problem doesn't specify a limit, but we must be efficient.
+
+ However, the problem says: "You only have **one chance** to answer the question." meaning we can only submit one answer. But we can make multiple tool calls in one step.
+
+ We can do:
+
+ 1. Get the mass of the block.
+ 2. Then, we try a sequence of forces and step the simulation for a short time after each force application, then check the velocity.
+
+ But note: we cannot do a loop in the tool calls. We have to write a fixed set of tool calls.
+
+ How about we try a few forces? We don't know the range.
+
+ Alternatively, we can use the fact that the normal force is m*g. The static friction coefficient for wood on wood is around 0.3 to 0.5, but we don't know the materials.
+
+ We must rely on the simulation to tell us when it moves.
+
+ Proposed plan:
+
+  - Step 0: Get the mass of the block (object_1).
+  - Step 1: Apply a force F1 in the x-direction to the block.
+  - Step 2: Step the simulation for a very short duration (e.g., 0.01 seconds).
+  - Step 3: Get the velocity of the block. If |vx| > 0, then F1 is above the threshold. Otherwise, it's below.
+
+ But we don't know F1. We need to choose a value. We can start with a small force and then increase until we see movement? But we can only do one set of tool calls.
+
+ We can do multiple force applications and steps in one go? Yes, we can chain:
+
+ Example:
+   [
+      {"tool": "get_parameters", "parameters": {"object_id": "object_1"}},
+      {"tool": "apply_force", "parameters": {"object_id": "object_1", "force_vector": [F1, 0, 0]}},
+      {"tool": "step", "parameters": {"duration": 0.01}},
+      {"tool": "get_velocity", "parameters": {"object_id": "object_1"}},
+      ... then more forces and steps ...
+   ]
+
+ But we don't know how many steps we need. And we must find the minimum force.
+
+ However, we are limited by the number of tool calls we can make in one array? The problem doesn't specify, but we must be reasonable.
+
+ Alternatively, we can use the fact that the static friction force is equal to the applied force until it breaks. So if we apply a force and the block doesn't move, then the static friction is exactly that force? But when we apply a force and step, the block might not move if the force is below the threshold.
+
+ But note: the static friction will adjust to match the applied force up to the maximum. So if we apply a force F and the block doesn't move, then the friction force is F. If we apply a force F and the block moves, then the friction force is kinetic and less than F.
+
+ Therefore, the minimum force to overcome static friction is the smallest force that causes the block to move.
+
+ We can try a sequence of increasing forces until we see movement.
+
+ But we must do it in one go. We can try, for example, 10 forces: 1N, 2N, 3N, ... until 10N? But what if the threshold is 0.5N? We need a better way.
+
+ We can use a binary search. We can do:
+
+   low = 0, high = 100 (a guess, but we don't know the mass)
+
+ But we have the mass: we can compute the weight. The maximum static friction is at most the weight (if μ_s=1). So we can set high to, say, 1.5 * (m * g) to be safe.
+
+ Steps for binary search in one go:
+
+   We cannot do a loop, so we have to unroll the binary search steps.
+
+   Let's say we do 5 steps of binary search.
+
+   We need to:
+     - Define the initial low and high.
+     - For each step, we choose a mid force, apply it, step, and then check velocity.
+
+   But note: the state of the simulation is persistent. If we apply a force and step, the block might move and then we cannot go back. We need to reset the position? But we don't have a reset tool.
+
+   We can move the block back to its initial position? But the initial position is [0,0,1]. We can use `move_object` to set it back.
+
+   However, moving the object might reset its velocity? We don't know. The tool `move_object` sets the position, but what about velocity? It might set velocity to zero? We are not told.
+
+   Alternatively, we can create a new block for each test? But we don't have a tool to duplicate.
+
+   We must be cautious: if we move the block, we might break the simulation? The table is at [0,0,0] and the block is at [0,0,1]. If we move it back to [0,0,
+
+--- Iteration 2 ---
+LLM Input Prompt Below:
+Previous Results:
+get_parameters(object_id="object_1") -> {"mass": 1.0, "bounding_box": [0.16666666666666666, 0.16666666666666666, 0.16666666666666666], "type": 0}
+[sim_time=0]
+IMPORTANT: You have 8 iterations remaining to use the 'answer' tool.
+What should I do next?
+
+LLM Response Below:
+<think>
+We have the mass of the block: 1.0 kg.
+ The normal force N = m * g = 1.0 * 9.81 = 9.81 N.
+ The maximum static friction force is μ_s * N. We don't know μ_s, so we must find the minimum force F_min that causes motion.
+
+ We'll use a binary search to find F_min. We'll set a range for F: [0, 20] N (since 20 > 9.81, and μ_s is usually less than 1, but we are being safe).
+
+ Steps for binary search (we'll do 4 iterations to get within 1 N, but we can do more if we have tool calls left; however, we are limited by the number of tool calls we can make in one array).
+
+ But note: we have 8 iterations remaining to use the 'answer' tool, meaning we can make 8 more tool calls? Actually, the problem says we have one chance to answer, but we can make multiple tool calls in one go.
+
+ However, the previous tool call (get_parameters) was one, and we have 8 iterations remaining? Actually, the message says: "You have 8 iterations remaining to use the 'answer' tool." meaning we can make up to 8 more tool calls? But note: we are allowed to make multiple tool calls in one array.
+
+ We are going to design a sequence of tool calls that does 4 binary search steps. Each step consists of:
+   - Applying a force (mid) in the x-direction.
+   - Stepping the simulation for a short time (0.01 seconds) to see if the block moves.
+   - Checking the velocity. If the absolute velocity in x is above a small threshold (say 0.001 m/s), then the force is sufficient.
+   - Then we reset the block: set its position back to [0,0,1] and set velocity to zero? But we don't have a tool to set velocity to zero? We have `set_velocity`.
+
+ However, note: if we reset the position and velocity, we must also reset the state of the simulation? But the table is still there.
+
+ We have the tools:
+   - `move_object` to set position: we can set to [0,0,1]
+   - `set_velocity` to set velocity to [0,0,0]
+
+ But note: the problem says the initial state is the block at [0,0,1]. We can reset to that.
+
+ Plan for one binary step:
+
+   Let F_mid = (low + high) / 2
+
+   Steps for one test:
+     1. Apply force F_mid in x: [F_mid, 0, 0]
+     2. Step for 0.01 seconds.
+     3. Get the velocity in x (vx).
+     4. If |vx| > 0.001, then F_mid is sufficient -> then we set high = F_mid.
+        Else, F_mid is insufficient -> set low = F_mid.
+
+   Then we reset the block for the next test:
+     5. Move the block to [0,0,1] (using `move_object`).
+     6. Set the velocity to [0,0,0] (using `set_velocity`).
+     7. Step for a very short time (0.001 seconds) to let the reset take effect? Not sure, but we can do it to be safe.
+
+ But note: after resetting the position and velocity, the block should be at rest again.
+
+ However, we must be cautious: the reset might cause the block to fall? But initially it was at [0,0,1] and the table at [0,0,0] (with height 0.1, so the top of the table is at 0.1). The block has size [0.5,0.5,0.5] so its bottom is at 1 - 0.5/2? Actually, the body_pos is the center of mass? And the geom_size for a box is half-lengths? The problem says: geom_size: [0.5,0.5,0.5] -> so the full size would be 1m in each dimension? Then the bottom of the block is at 1 - 0.5 = 0.5, and the table top is at 0.1 (since the table has geom_size [5,5,0.1] and body_pos [0,0,0], so the top of the table is at 0.1). So the block is sitting at 0.5 above the table? Actually, the block's bottom is at 1 - 0.5 = 0.5, and the table top is at 0.1? That doesn't make sense because 0.5 > 0.1, so the block is floating? 
+
+ Let me recalculate:
+   The table: body_pos [0,0,0] and geom_size [5,5,0.1] -> the table extends from z=-0.1 to z=0.1? Then the top surface is at z=0.1.
+   The block: body_pos [0,0,1] and geom_size [0.5,0.5,0.5] -> the block extends from z=0.5 to z=1.5. So the bottom of the block is at 0.5, which is above the table (0.1). There is a gap? 
+
+ This is a problem. The block should be resting on the table. 
+
+ I think there might be a mistake in the initial positions. The table has height 0.2 (from -0.1 to 0.1) and the block is at z=1.0? That would be above the table. 
+
+ But the scene description says: "Static Friction Threshold", so the block must be in contact with the table.
+
+ How can we fix this? We don't have a tool to change the initial positions? But we can move the block to the table.
+
+ Actually, the initial position of the block is [0.0,0.0,1.0]. We want the block to be resting on the table. The table's top is at z=0.1 (if the table's center is at z=0 and half-height is 0.1). The block's center is at 1.0, and half-height is 0.5, so the bottom is at 0.5. So the gap is 0.5 - 0.1 = 0.4 meters.
+
+ This is an error in the scene setup. We must adjust the block's position so that it is resting on the table.
+
+ We can move the block to [0,0,0.5 + 0.1] = [0,0,0.6]? 
+   Block: center at 0.6, half-height 0.5 -> bottom at 0.1 (which is the table top). So we set the block to [0,0,0.6].
+
+ But note: the initial position was [0,0,1.0]. We are allowed to move it? We are going to reset it to [0,0,0.6] for our tests.
+
+ Alternatively, we can set the block to [0,0,0.6] at the beginning of our experiment.
+
+ Steps to fix the scene:
+   - Move the block to [0,0,0.6] (so it rests on the table) at the start.
+
+ But note: the problem says the initial state is given. However, we are allowed to move objects. We must set the block to rest on the table.
+
+ We'll do:
+   move_object(object_1, 0,0,0.6)
+
+ Then we can proceed.
+
+ Revised plan:
+
+   Step 0: Move the block to the correct position on the table: [0,0,0.6]
+   Step 1: Get the mass of the block -> already done? We have it: 1.0 kg.
+
+   Then we do the binary search.
+
+   We'll do 4 iterations of binary search. We'll set:
+        low = 0.0
+        high = 20.0   (since m*g = 9.81, and μ_s might be up to 1, so 20 is safe)
+
+   We'll define a threshold for velocity: 0.001 m/s.
+
+   We'll reset the block after each test.
+
+   Sequence of tool calls:
+
+     1. move_object to [0,0,0.6] for object_1. (We do this once at the beginning to fix the scene, and then after each test we reset to this position and set velocity to zero.)
+
+     2. For each of the 4 iterations:
+          a. Calculate mid = (low+high)/2
+          b. apply_force: [mid, 0, 0] to object_1
+          c. step: 0.01 seconds
+          d. get_velocity for object_1 -> record vx
+          e. If |vx| > 0.001, then this force is sufficient -> we set high = mid. Otherwise, set low = mid.
+          f. Then reset: 
+               - move_object to [0,0,0.6]
+               - set_velocity to [0,0,0]
+               - step 0.001 seconds (to let the reset settle) -> optional? We'll do it to be safe.
+
+     3. After 4 iterations, we take the mid at the last step as our estimate for
