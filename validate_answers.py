@@ -64,10 +64,15 @@ def _check_answer(final, correct):
         except Exception:
             pass
 
-    # Bidirectional containment
+    # Word-boundary containment (prevents "elastic" matching "inelastic")
     fl, cl = nf.lower(), nc.lower()
-    if fl and cl and (fl in cl or cl in fl):
-        return True
+    if fl and cl:
+        if fl == cl:
+            return True
+        if re.search(r'\b' + re.escape(fl) + r'\b', cl):
+            return True
+        if re.search(r'\b' + re.escape(cl) + r'\b', fl):
+            return True
 
     # Number extraction fallback
     fn = re.findall(r'-?\d+\.?\d*', nf)
