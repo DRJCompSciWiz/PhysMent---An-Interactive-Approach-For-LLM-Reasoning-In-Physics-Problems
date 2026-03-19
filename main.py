@@ -87,7 +87,11 @@ def initialize_agent(agent_type: str):
     Initialize the correct agent based on the provided agent_type string.
     """
     # OpenAI Models
-    if agent_type == "OpenAIAgentGPT4o":
+    # ridiculous implementation of agent switching...preserving this for LEGACY code purposes
+    # NOTE: FOR ALL NEW EXPERIMENTS, PLEASE JUST PUT "XXXAgent" in the [] and change the model via the config
+    if agent_type == "OpenAIAgent":
+        return OpenAIAgent()
+    elif agent_type == "OpenAIAgentGPT4o":
         return OpenAIAgent(model="gpt-4o")
     elif agent_type == "OpenAIAgentGPT4omini":
         return OpenAIAgent(model="gpt-4o-mini")
@@ -145,6 +149,8 @@ def initialize_agent(agent_type: str):
         return KimiAgent()
     elif agent_type == "GLMAgent":
         return GLMAgent()
+    # elif agent_type == "OpenRouterAgent":
+    #     return OpenRouterAgent()
 
     else:
         raise ValueError(
