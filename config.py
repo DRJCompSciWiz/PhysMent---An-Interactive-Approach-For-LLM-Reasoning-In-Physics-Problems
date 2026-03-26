@@ -3,14 +3,16 @@ timeout_limit = 600  # for context 600 = 10 min before exp gives up and moves on
 
 # NOTE: Testing configs
 iterations: list[int] = [
-    20,
+    5,
 ]  # iterations LLM gets before hard stop]
 # max_token limit except for long thinking models
-max_tokens = 8192
+# max_tokens = 8192
+# tmp double test
+max_tokens = 16384
 
 
 # NOTE: FIX NUMBERING SCHEMA LATER...THIS IS JUST A TEMP FIX
-start_scene: int = 86  # first test scene
+start_scene: int = 7  # first test scene
 end_scene: int = 112  # last test scene
 
 # NOTE: Serverless provider model management, consult respective docs for naming schema
@@ -30,7 +32,7 @@ OPENROUTER_MODEL = "minimax/minimax-m2.7"
 
 # NOTE: Agent management, leave as GPT in repo but change to what you are testing
 agents: list[str] = [
-    "AnthropicAgentClaudeOpus4",
+    "QwenAgent",
 ]
 
 # NOTE: Experimental methods
