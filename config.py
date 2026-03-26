@@ -10,7 +10,7 @@ max_tokens = 8192
 
 
 # NOTE: FIX NUMBERING SCHEMA LATER...THIS IS JUST A TEMP FIX
-start_scene: int = 7  # first test scene
+start_scene: int = 86  # first test scene
 end_scene: int = 112  # last test scene
 
 # NOTE: Serverless provider model management, consult respective docs for naming schema
@@ -30,7 +30,7 @@ OPENROUTER_MODEL = "minimax/minimax-m2.7"
 
 # NOTE: Agent management, leave as GPT in repo but change to what you are testing
 agents: list[str] = [
-    "DeepSeekAgent",
+    "AnthropicAgentClaudeOpus4",
 ]
 
 # NOTE: Experimental methods
