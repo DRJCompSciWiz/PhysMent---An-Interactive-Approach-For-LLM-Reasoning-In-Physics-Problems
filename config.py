@@ -3,7 +3,7 @@ timeout_limit = 600  # for context 600 = 10 min before exp gives up and moves on
 
 # NOTE: Testing configs
 iterations: list[int] = [
-    15,
+    20,
 ]  # iterations LLM gets before hard stop]
 # max_token limit except for long thinking models
 max_tokens = 8192
