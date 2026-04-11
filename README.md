@@ -2,6 +2,88 @@
 
 **PhysMent** is an AI-driven physics reasoning benchmark system that evaluates Large Language Model (LLM) capabilities in solving physics problems through interactive simulation. The system implements an agentic loop where an LLM (GPT-4o) receives physics problems as prompts, interacts with a MuJoCo physics simulator using predefined tools, and provides numerical answers that are validated against ground truth.
 
+## 🚀 Getting Started
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/your-username/physment.git
+cd physment
+```
+
+### 2. Python Installation
+
+Ensure that you are using **Python 3.9 - 3.12**. You can manage Python versions using [pyenv](https://github.com/pyenv/pyenv):
+
+```bash
+pyenv install 3.12.0
+pyenv local 3.12.0
+```
+
+### 3. Install Dependencies
+
+Install the required packages using `pip`:
+
+```bash
+pip install mujoco==3.3.3
+pip install openai anthropic together google-generativeai
+pip install rich
+```
+
+### 4. Set Up Environment Variables
+
+Create a `.env` file in the root directory and add your API keys:
+
+```dotenv
+OPENAI_API_KEY=your_openai_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
+TOGETHER_API_KEY=your_together_api_key
+GOOGLE_API_KEY=your_google_api_key
+```
+
+### 5. Configure & Run the Pipeline
+
+Manage testing parameters in `config.py` these will be used during runtime.
+
+Run the main pipeline:
+
+```bash
+python main.py
+```
+
+---
+
+## 📊 Results
+
+| Task | GPT 4.1 | GPT 4.1 |  GPT 4o |  Claude | Gemini  | Gemma 2 | Llama 4 | DeepSeek|
+
+|      |         |   mini  |   mini  |Haiku 3.5| 2.5 Pro |    9B   |   Scout |  R1     |
+| ---- | ------- | ------- | ------- | ------- | ------- | ------- | ------- | ------- |
+| 1    |         |         |         |         |         |         |         |         |
+| 2    |         |         |         |         |         |         |         |         |
+| 3    |         |         |         |         |         |         |         |         |
+| 4    |         |         |         |         |         |         |         |         |
+| 5    |         |         |         |         |         |         |         |         |
+| 6    |         |         |         |         |         |         |         |         |
+| 7    |         |         |         |         |         |         |         |         |
+| 8    |         |         |         |         |         |         |         |         |
+| 9    |         |         |         |         |         |         |         |         |
+
+---
+
+## 📚 BibTeX Reference
+
+```bibtex
+@misc{physment2025,
+  author       = {S. Saravalle et al.},
+  title        = {PhysMent: A Multi-Agent Physics Benchmarking Pipeline},
+  year         = {2025},
+  publisher    = {GitHub},
+  journal      = {GitHub repository},
+  howpublished = {\url{https://github.com/your-username/physment}}
+}
+```
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -277,343 +359,3 @@ LLM must return tool calls as JSON array:
 
 **Answer Submission:**
 - `answer(answer)`: Submit final answer for validation
-
-## Known Issues and Bugs
-
-### 🔴 Critical Issues
-
-#### 1. **Missing `get_acceleration()` Implementation**
-**Status**: ❌ NOT WORKING
-
-**Location**: `Simulator.py`
-
-**Problem**: 
-- `get_acceleration()` is referenced in tool mappings (`Scene.py:118`, `Experimental.py:43`)
-- Listed in tool descriptions in prompts (`Scene.py:173`)
-- Called by `compute_force()` (`Simulator.py:133`)
-- **BUT**: The method is not implemented in `Simulator.py`
-
-**Impact**: 
-- `compute_force()` will fail with `AttributeError` when called
-- LLM may try to call `get_acceleration()` directly, causing errors
-- Tool is advertised but non-functional
-
-**Error Example**:
-```python
-AttributeError: 'Simulator' object has no attribute 'get_acceleration'
-```
-
-**Fix Required**:
-```python
-def get_acceleration(self, object_id: str) -> dict:
-    """Returns the current acceleration vector of an object."""
-    try:
-        object_id = str(object_id)
-        body_id = self.get_body_id(object_id)
-        # Calculate acceleration from velocity changes or use MuJoCo's qacc
-        dof_adr = self.model.body_dofadr[body_id]
-        acc = self.data.qacc[dof_adr:dof_adr + 3]  # Linear acceleration
-        return {"x": float(acc[0]), "y": float(acc[1]), "z": float(acc[2])}
-    except Exception as e:
-        return {"error": str(e)}
-```
-
----
-
-#### 2. **Hardcoded Windows Paths**
-**Status**: ❌ NOT WORKING ON MAC/LINUX
-
-**Location**: `Scene.py:23-37`
-
-**Problem**:
-- Paths are hardcoded for Windows (`C:\Users\...`)
-- Only works for specific developers (utkarsh, robin, abhinav, sid)
-- Breaks on Mac/Linux or other Windows users
-- No fallback to relative paths
-
-**Current Code**:
-```python
-self.terminal = "utkarsh"  # Hardcoded
-if self.terminal == "utkarsh":
-    base_dir = r"C:\Users\inbox\OneDrive\Desktop\Algoverse-updated-pipeline\Scenes"
-```
-
-**Impact**: 
-- File not found errors on non-Windows systems
-- Cannot run without manual path modification
-- Not portable across different machines
-
-**Fix Required**: Use relative paths based on script location:
-```python
-import os
-script_dir = os.path.dirname(os.path.abspath(__file__))
-scenes_dir = os.path.join(script_dir, "Scenes")
-self.file_path = os.path.join(scenes_dir, f"Scene{self.scene_number}", f"scene{self.scene_number}.json")
-```
-
----
-
-#### 3. **Bug in `get_parameters()` Method**
-**Status**: ❌ NOT WORKING
-
-**Location**: `Simulator.py:231-234`
-
-**Problem**:
-- Tries to use `object_id` (a string like "object_1" or "1") as an array index
-- MuJoCo arrays require integer body IDs, not string object IDs
-
-**Current Code**:
-```python
-return {
-    "mass": float(self.model.body_mass[object_id]),  # ❌ object_id is string!
-    "bounding_box": self.model.body_inertia[object_id].tolist(),  # ❌
-    "type": int(self.model.body_parentid[object_id])  # ❌
-}
-```
-
-**Error Example**:
-```
-TypeError: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
-```
-
-**Fix Required**:
-```python
-def get_parameters(self, object_id: str) -> dict:
-    object_id = str(object_id)
-    body_id = self.get_body_id(object_id)  # Convert to body ID first
-    return {
-        "mass": float(self.model.body_mass[body_id]),
-        "bounding_box": self.model.body_inertia[body_id].tolist(),
-        "type": int(self.model.body_parentid[body_id])
-    }
-```
-
----
-
-#### 4. **Outdated OpenAI API Usage**
-**Status**: ⚠️ DEPRECATED (may break in future)
-
-**Location**: `OpenAIAgent.py:37`
-
-**Problem**:
-- Uses deprecated `openai.ChatCompletion.create()`
-- Should use `openai.ChatCompletion.create()` from `openai` v0.x OR
-- Should use `openai.chat.completions.create()` from `openai` v1.x+
-
-**Current Code**:
-```python
-response = openai.ChatCompletion.create(
-    model="gpt-4o",
-    messages=self.context,
-    api_key=self.api_key
-)
-```
-
-**Impact**:
-- May break with newer OpenAI library versions
-- `api_key` parameter deprecated in favor of environment variable or client initialization
-
-**Fix Required** (for OpenAI v1.x+):
-```python
-from openai import OpenAI
-
-class OpenAIAgent:
-    def __init__(self, api_key, ...):
-        self.client = OpenAI(api_key=api_key)
-        ...
-    
-    def interact(self, user_input):
-        self.context.append({"role": "user", "content": user_input})
-        response = self.client.chat.completions.create(
-            model="gpt-4o",
-            messages=self.context
-        )
-        ai_message = response.choices[0].message.content
-        ...
-```
-
----
-
-#### 5. **Scene Directory Naming Inconsistency**
-**Status**: ⚠️ POTENTIAL ISSUES
-
-**Location**: Throughout `Scenes/` directory
-
-**Problem**:
-- Inconsistent naming: "Scene1", "Scene 100" (with spaces), "scene15" (lowercase), "Scene 45" (with space)
-- Path construction assumes `Scene{N}` format but reality varies
-- May cause file not found errors
-
-**Examples**:
-- `Scene1/` vs `Scene 100/` vs `scene15/` vs `Scene 45/`
-
-**Impact**:
-- Some scenes may fail to load
-- Path resolution may be incorrect
-
-**Fix Required**: Standardize all scene directories to single format (e.g., `Scene{N}`)
-
----
-
-#### 6. **MuJoCo Viewer Dependency**
-**Status**: ⚠️ BREAKS IN HEADLESS ENVIRONMENTS
-
-**Location**: `Simulator.py:33`
-
-**Problem**:
-- Launches passive viewer on initialization
-- Fails in headless/server environments (no display)
-- No error handling for viewer failures
-
-**Current Code**:
-```python
-self.viewer = mujoco.viewer.launch_passive(self.model, self.data)
-```
-
-**Impact**:
-- Cannot run on servers without displays
-- May crash in Docker containers without X11
-- Blocks execution if viewer fails
-
-**Fix Required**: Make viewer optional:
-```python
-try:
-    self.viewer = mujoco.viewer.launch_passive(self.model, self.data)
-except Exception as e:
-    logging.warning(f"Could not launch viewer: {e}. Running in headless mode.")
-    self.viewer = None
-```
-
----
-
-#### 7. **Permission System Not Enforced**
-**Status**: ⚠️ SECURITY/LOGIC ISSUE
-
-**Location**: `Simulator.py` (most tools)
-
-**Problem**:
-- Permissions defined in JSON but only checked in `get_parameters()`
-- Other tools don't validate permissions
-- Relies on LLM respecting semantic restrictions
-
-**Impact**:
-- LLM can access restricted object properties
-- Permissions are advisory, not enforced
-- May lead to incorrect problem solving
-
-**Fix Required**: Add permission checks to all query tools:
-```python
-def get_velocity(self, object_id: str) -> dict:
-    # Check permissions
-    if not self._check_permission(object_id, "vel"):
-        return {"error": "Permission denied: vel access not allowed"}
-    # ... rest of implementation
-```
-
----
-
-### 🟡 Minor Issues
-
-#### 8. **No Experiment Aggregation**
-- Each run overwrites `aggregated_results.json`
-- No historical comparison across runs
-- TestResults logs not parsed or analyzed
-
-#### 9. **Single Model Hardcoded**
-- OpenAIAgent only supports GPT-4o
-- No easy way to switch models
-
-#### 10. **No Progress Indicators**
-- Long experiments have no status updates
-- No ETA or progress bar
-
-#### 11. **Memory Growth**
-- Conversation context grows unbounded
-- May hit token limits for long experiments
-
-#### 12. **Limited Error Recovery**
-- Some errors terminate experiment
-- No retry logic for transient failures
-
-#### 13. **No Scene Validation**
-- Invalid JSON/XML not caught early
-- Errors only appear at runtime
-
-## Troubleshooting
-
-### Issue: "File not found" errors
-
-**Cause**: Hardcoded Windows paths in `Scene.py`
-
-**Solution**: 
-1. Open `Scene.py`
-2. Change line 23 to use relative paths (see Fix #2 above)
-3. Or set `self.terminal` to match your system if you're a developer
-
-### Issue: "AttributeError: 'Simulator' object has no attribute 'get_acceleration'"
-
-**Cause**: Missing `get_acceleration()` implementation
-
-**Solution**: Add the method to `Simulator.py` (see Fix #1 above)
-
-### Issue: "TypeError: only integers... are valid indices" in `get_parameters()`
-
-**Cause**: Using string object_id as array index
-
-**Solution**: Fix `get_parameters()` to use `get_body_id()` first (see Fix #3 above)
-
-### Issue: "Body with name '1' not found in the scene"
-
-**Cause**: Object ID format mismatch - LLM using numeric ID instead of "object_N"
-
-**Solution**: This is expected behavior. The LLM should use "object_1" format. The error is correctly returned and the LLM should retry with correct format.
-
-### Issue: Viewer fails to launch
-
-**Cause**: Running in headless environment or missing display
-
-**Solution**: Make viewer optional (see Fix #6 above) or run with `DISPLAY` environment variable set
-
-### Issue: OpenAI API errors
-
-**Cause**: Outdated API usage or invalid API key
-
-**Solution**: 
-1. Check API key in `.env` file
-2. Update `OpenAIAgent.py` to use latest OpenAI library (see Fix #4 above)
-
-## Contributing
-
-### Adding New Tools
-
-1. Implement method in `Simulator.py`
-2. Add to `tool_mapping` in `Scene.py` and `Experimental.py`
-3. Add tool description to `Scene.generate_prompt()` tools list
-
-### Creating New Scenes
-
-1. Create directory: `Scenes/Scene{N}/`
-2. Create `scene{N}.json` with required fields
-3. Create `scene{N}.xml` with MuJoCo model definition
-4. Add `Scene_{N}` to scene_ids in `main.py`
-
-### Testing
-
-1. Run individual scenes to verify functionality
-2. Check experiment logs in `TestResults/`
-3. Validate answers against ground truth
-
-## License
-
-[Add license information here]
-
-## Contact
-
-[Add contact information here]
-
----
-
-**Last Updated**: January 2025
-**Codebase Size**: ~1,113 lines (core files)
-**Total Scenes**: 101 physics problems
-**Active Model**: OpenAI GPT-4o
