@@ -359,3 +359,9 @@ LLM must return tool calls as JSON array:
 
 **Answer Submission:**
 - `answer(answer)`: Submit final answer for validation
+
+## Known Issues and Bugs
+
+### Scene Changes
+
+- **Scene 110 (replaced):** The original Scene 110 ("Horizontal Launch and Velocity Calculation") was a duplicate of Scene 102 with a wrong ground-truth answer (69.4 vs the correct 62.8). It was removed and replaced by the former Scene 112 ("Collision Detection and Torque"). The scene range is now 7–111.
