@@ -7,6 +7,7 @@ from AgentClass import (
     GLMAgent,
     KimiAgent,
     OpenAIAgent,
+    OpenRouterAgent,
     LlamaAgent,
     Llama3370BAgent,
     GemmaAgent,
@@ -149,8 +150,8 @@ def initialize_agent(agent_type: str):
         return KimiAgent()
     elif agent_type == "GLMAgent":
         return GLMAgent()
-    # elif agent_type == "OpenRouterAgent":
-    #     return OpenRouterAgent()
+    elif agent_type == "OpenRouterAgent":
+        return OpenRouterAgent()
 
     else:
         raise ValueError(

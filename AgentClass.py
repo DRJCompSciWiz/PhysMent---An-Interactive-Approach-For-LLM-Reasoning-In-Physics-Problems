@@ -58,6 +58,63 @@ Submit your answer only when confident, using the answer function.""",
         return _call()
 
 
+class OpenRouterAgent:
+    def __init__(
+        self,
+        model: str = config.OPENROUTER_MODEL,
+        api_key=None,
+        system_prompt="""You are an expert AI agent designed to solve physics problems by interacting directly with a physics simulator. You have access to a variety of tools to manipulate objects, query object states (position, velocity, acceleration, etc.), and simulate physics progression through time (step).
+
+Here are some important guidelines for interacting with the environment:
+1) ALWAYS Provide clear reasoning for every action.
+2) ALWAYS return actions formatted as valid JSON arrays of tool calls.
+3) Simulate time progression explicitly using the step function.
+4) Query the object states to give you better context of the environment, it will not automatically tell you this.
+
+Submit your answer only when confident, using the answer function.""",
+    ):
+        import openai
+        import backoff
+        from openai.types.chat import (
+            ChatCompletionSystemMessageParam,
+            ChatCompletionUserMessageParam,
+            ChatCompletionAssistantMessageParam,
+        )
+
+        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
+        self._client = openai.OpenAI(
+            api_key=self.api_key,
+            base_url="https://openrouter.ai/api/v1",
+        )
+        self._openai = openai
+        self._backoff = backoff
+        self.system_prompt = system_prompt
+        self.model = model
+        self.context: list[
+            ChatCompletionSystemMessageParam
+            | ChatCompletionUserMessageParam
+            | ChatCompletionAssistantMessageParam
+        ] = [{"role": "system", "content": system_prompt}]
+
+    def interact(self, user_input):
+        openai = self._openai
+
+        @self._backoff.on_exception(self._backoff.expo, openai.RateLimitError)
+        def _call():
+            self.context.append({"role": "user", "content": user_input})
+            response = self._client.chat.completions.create(
+                model=self.model,
+                messages=self.context,
+                max_tokens=config.max_tokens,
+                extra_body={"provider": {"data_collection": "deny"}},
+            )
+            ai_message = response.choices[0].message.content
+            self.context.append({"role": "assistant", "content": ai_message})
+            return ai_message
+
+        return _call()
+
+
 class AnthropicAgent:
     def __init__(
         self,

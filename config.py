@@ -3,7 +3,7 @@ timeout_limit = 600  # for context 600 = 10 min before exp gives up and moves on
 
 # NOTE: Testing configs
 iterations: list[int] = [
-    5,
+    10,
 ]  # iterations LLM gets before hard stop]
 # max_token limit except for long thinking models
 # max_tokens = 8192
@@ -27,12 +27,12 @@ GLM_MODEL = "zai-org/GLM-5"
 
 # OPENROUTER MODELS for bleeding edge & free-access models (MiniMax, Nemotron, MiMO-V2-Pro, etc)
 # THESE ARE DATA LOGGED SO PLEASE ENSURE YOU ARE SENDING NOTHING IMPORTANT!!!
-OPENROUTER_MODEL = "minimax/minimax-m2.7"
+OPENROUTER_MODEL = "anthropic/claude-opus-4.6"
 
 
 # NOTE: Agent management, leave as GPT in repo but change to what you are testing
 agents: list[str] = [
-    "QwenAgent",
+    "OpenRouterAgent",
 ]
 
 # NOTE: Experimental methods
