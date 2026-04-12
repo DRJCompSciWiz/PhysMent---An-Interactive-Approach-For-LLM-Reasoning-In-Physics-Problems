@@ -13,7 +13,7 @@ max_tokens = 16384
 
 # NOTE: FIX NUMBERING SCHEMA LATER...THIS IS JUST A TEMP FIX
 start_scene: int = 7  # first test scene
-end_scene: int = 112  # last test scene
+end_scene: int = 111  # last test scene
 
 # NOTE: Serverless provider model management, consult respective docs for naming schema
 
