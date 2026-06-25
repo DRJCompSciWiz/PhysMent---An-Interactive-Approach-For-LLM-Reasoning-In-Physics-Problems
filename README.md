@@ -120,27 +120,6 @@ Historical summaries whose `Correct Answer:` field contained labels, formulas, o
 
 Additional result sets imported from the current repository branch include normalized `gpt_5_5`, `anthropic_opus_4_7`, and `supplemental_results` folders. The `gpt_5_5` summaries used the older `1-105` scene numbering, so their answer references were normalized to the current `7-111` canonical scene range.
 
-Because `TestResults/` is ignored by default for local runs, use a forced add when preparing the camera-ready commit:
-
-```bash
-git add -f TestResults/iterations_05 TestResults/iterations_10 TestResults/iterations_15 TestResults/iterations_20
-git add -f TestResults/unbucketed_runs TestResults/legacy_out_of_range TestResults/supplemental_results
-git add -f TestResults/manual_grading_summary.csv
-git add -u TestResults README.md
-```
-
-## Local-Only Maintenance Scripts
-
-`migrate_old_scenes.py` and `validate_answers.py` are kept in `local_tools/` so they remain available for maintainers without being pushed as part of the camera-ready repository. To make sure they are removed from Git tracking while keeping local copies, run:
-
-```bash
-git rm --cached migrate_old_scenes.py validate_answers.py
-git add .gitignore README.md
-git status --short
-```
-
-The `local_tools/` entry in `.gitignore` prevents the moved copies from being added later.
-
 ## License
 
 PhysMent is released under the MIT License. See `LICENSE`.
