@@ -149,10 +149,10 @@ PhysMent is released under the MIT License. See `LICENSE`.
 
 ```bibtex
 @misc{physment2026,
-  author       = {Saravalle, S. and PhysMent contributors},
-  title        = {PhysMent: An Interactive Physics Reasoning Benchmark},
+  author       = {Chan, Joseph and Jha, Utkarsh and Yang, Xiyin and Jarajapu, Abhinav and Sahai, Anik and Hu, Eddie and Deepak, Robin Jeshua and Saravalle, Stefano and Shah, Aditya},
+  title        = {PhysMent: An Interactive Approach For LLM Reasoning In Physics Problems},
   year         = {2026},
-  howpublished = {\url{https://github.com/<owner>/<repo>}},
-  note         = {MIT License}
+  howpublished = {\url{https://github.com/DRJCompSciWiz/PhysMent---An-Interactive-Approach-For-LLM-Reasoning-In-Physics-Problems}},
+  note         = {ICML 2026 AI4Math Workshop}
 }
 ```
