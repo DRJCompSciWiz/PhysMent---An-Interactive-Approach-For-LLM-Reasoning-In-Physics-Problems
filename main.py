@@ -1,3 +1,5 @@
+"""Command-line entry point for running PhysMent benchmark experiments."""
+
 from inspect import Traceback
 import os
 import json
@@ -28,7 +30,9 @@ import time
 
 
 class JsonLogger:
+    """Thread-safe JSON log writer for experiment output."""
     def __init__(self, json_path):
+        """Initialize the instance."""
         self.json_path = json_path
         self.lock = threading.Lock()
         self.entries = []
@@ -46,6 +50,7 @@ class JsonLogger:
             json.dump(self.entries, f, indent=2, ensure_ascii=False)
 
     def log(self, kind, message):
+        """Append a structured entry to the JSON log."""
         with self.lock:
             self.entries.append({kind: message})
             with open(self.json_path, "w", encoding="utf-8") as f:
@@ -53,11 +58,14 @@ class JsonLogger:
 
 
 class Tee:
+    """Output stream fan-out with optional JSON logging."""
     def __init__(self, *streams, json_logger=None):
+        """Initialize the instance."""
         self.streams = streams
         self.json_logger = json_logger
 
     def write(self, message):
+        """Write a message to all configured streams."""
         for s in self.streams:
             s.write(message)
             s.flush()
@@ -65,16 +73,20 @@ class Tee:
             self.json_logger.log("print", message.rstrip("\n"))
 
     def flush(self):
+        """Flush all configured streams."""
         for s in self.streams:
             s.flush()
 
 
 class JsonLoggingHandler(logging.Handler):
+    """Logging handler that forwards records into a JSON log."""
     def __init__(self, json_logger):
+        """Initialize the instance."""
         super().__init__()
         self.json_logger = json_logger
 
     def emit(self, record):
+        """Format and persist a logging record."""
         msg = self.format(record)
         if record.levelno >= logging.ERROR:
             kind = "error"
@@ -160,6 +172,7 @@ def initialize_agent(agent_type: str):
 
 
 def add_scenes(scene_list: list[str]) -> None:
+    """Populate the scene list from the configured scene range."""
     for id in range(config.start_scene, config.end_scene + 1):
         scene_list.append(id.__str__())
 

@@ -1,367 +1,158 @@
-# PhysMent - Physics Reasoning Benchmark System
+# PhysMent
 
-**PhysMent** is an AI-driven physics reasoning benchmark system that evaluates Large Language Model (LLM) capabilities in solving physics problems through interactive simulation. The system implements an agentic loop where an LLM (GPT-4o) receives physics problems as prompts, interacts with a MuJoCo physics simulator using predefined tools, and provides numerical answers that are validated against ground truth.
-
-## 🚀 Getting Started
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/your-username/physment.git
-cd physment
-```
-
-### 2. Python Installation
-
-Ensure that you are using **Python 3.9 - 3.12**. You can manage Python versions using [pyenv](https://github.com/pyenv/pyenv):
-
-```bash
-pyenv install 3.12.0
-pyenv local 3.12.0
-```
-
-### 3. Install Dependencies
-
-Install the required packages using `pip`:
-
-```bash
-pip install mujoco==3.3.3
-pip install openai anthropic together google-generativeai
-pip install rich
-```
-
-### 4. Set Up Environment Variables
-
-Create a `.env` file in the root directory and add your API keys:
-
-```dotenv
-OPENAI_API_KEY=your_openai_api_key
-ANTHROPIC_API_KEY=your_anthropic_api_key
-TOGETHER_API_KEY=your_together_api_key
-GOOGLE_API_KEY=your_google_api_key
-```
-
-### 5. Configure & Run the Pipeline
-
-Manage testing parameters in `config.py` these will be used during runtime.
-
-Run the main pipeline:
-
-```bash
-python main.py
-```
-
----
-
-## 📊 Results
-
-| Task | GPT 4.1 | GPT 4.1 |  GPT 4o |  Claude | Gemini  | Gemma 2 | Llama 4 | DeepSeek|
-
-|      |         |   mini  |   mini  |Haiku 3.5| 2.5 Pro |    9B   |   Scout |  R1     |
-| ---- | ------- | ------- | ------- | ------- | ------- | ------- | ------- | ------- |
-| 1    |         |         |         |         |         |         |         |         |
-| 2    |         |         |         |         |         |         |         |         |
-| 3    |         |         |         |         |         |         |         |         |
-| 4    |         |         |         |         |         |         |         |         |
-| 5    |         |         |         |         |         |         |         |         |
-| 6    |         |         |         |         |         |         |         |         |
-| 7    |         |         |         |         |         |         |         |         |
-| 8    |         |         |         |         |         |         |         |         |
-| 9    |         |         |         |         |         |         |         |         |
-
----
-
-## 📚 BibTeX Reference
-
-```bibtex
-@misc{physment2025,
-  author       = {S. Saravalle et al.},
-  title        = {PhysMent: A Multi-Agent Physics Benchmarking Pipeline},
-  year         = {2025},
-  publisher    = {GitHub},
-  journal      = {GitHub repository},
-  howpublished = {\url{https://github.com/your-username/physment}}
-}
-```
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Architecture](#architecture)
-- [Usage](#usage)
-- [Known Issues and Bugs](#known-issues-and-bugs)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-
-## Overview
-
-PhysMent consists of 101 physics scenes covering mechanics, dynamics, energy, collisions, rotation, and oscillation. Each scene presents a physics problem that an LLM must solve by:
-
-1. Receiving a detailed prompt describing the scene, objects, and task
-2. Interacting with a MuJoCo physics simulator using 19 available tools
-3. Iteratively exploring the simulation to understand the physics
-4. Submitting a final answer that is validated against ground truth
-
-The system tracks tool usage, iterations, correctness, and generates detailed experiment logs for analysis.
-
-## Features
-
-- **101 Physics Scenes**: Diverse problems covering multiple physics domains
-- **19 Simulator Tools**: Comprehensive set of tools for manipulation and querying
-- **Iterative Experiment Loop**: Default 5 max iterations with configurable limits
-- **Answer Validation**: Automatic validation with 0.001 tolerance for numerical problems
-- **Detailed Logging**: Full conversation logs and experiment statistics
-- **Multiple Problem Types**: Comparison, computation, and boolean problems
+PhysMent is an interactive physics-reasoning benchmark for evaluating large language models in MuJoCo simulation environments. Each task gives an agent a compact scene description, a paired MuJoCo XML world, and a set of simulator tools. The agent must experiment with the scene and submit a numeric answer.
 
 ## Installation
 
-### Prerequisites
-
-- Python 3.8 or higher
-- OpenAI API key (for GPT-4o)
-- MuJoCo physics engine
-
-### Step 1: Clone the Repository
+Use Python 3.9 through 3.12.
 
 ```bash
 git clone <repository-url>
-cd PhysMent-1
+cd PhysMent
+python -m venv .venv
+.\.venv\Scripts\activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
-### Step 2: Install Dependencies
+Create a `.env` file from the example and add the API keys for the agents you plan to run.
 
 ```bash
-pip install mujoco openai python-dotenv numpy
+copy .env.example .env
 ```
 
-**Optional dependencies** for alternative models:
-```bash
-pip install transformers torch huggingface_hub  # For Llama via HuggingFace
+Common keys are:
+
+```dotenv
+OPENAI_API_KEY=...
+ANTHROPIC_API_KEY=...
+TOGETHER_API_KEY=...
+GEMINI_API_KEY=...
+OPENROUTER_API_KEY=...
 ```
 
-### Step 3: Configure Environment
+Set the benchmark range, agents, models, and iteration budgets in `config.py`, then run:
 
-Create a `.env` file in the project root:
-
-```bash
-OPENAI_API_KEY="sk-your-api-key-here"
-```
-
-### Step 4: Fix Path Configuration
-
-**IMPORTANT**: The codebase currently has hardcoded Windows paths. Before running, you must update `Scene.py`:
-
-1. Open `Scene.py`
-2. Find line 23: `self.terminal = "utkarsh"`
-3. Either:
-   - Set it to match your system (if you're one of the developers)
-   - Or modify the path construction to use relative paths (see [Known Issues](#known-issues-and-bugs))
-
-## Quick Start
-
-### Running a Single Scene
-
-1. Edit `main.py` and set the scene ID:
-```python
-scene_ids = ["Scene_1"]  # Change to your desired scene
-```
-
-2. Run the experiment:
 ```bash
 python main.py
 ```
 
-3. Check results:
-   - Console output: Answer summary and correctness
-   - `aggregated_results.json`: Experiment metrics
-   - `TestResults/Scene{N}/experimentslog_*.txt`: Full conversation logs
+For a quick sanity check that all scene answers validate under the local answer checker:
 
-### Running Multiple Scenes
-
-```python
-scene_ids = ["Scene_1", "Scene_15", "Scene_100"]
+```bash
+python local_tools/validate_answers.py
 ```
 
-## Architecture
+## Repository Structure
 
-### Core Components
+| Path | Purpose |
+| --- | --- |
+| `main.py` | CLI entry point. Reads `config.py`, creates agents, runs scenes, and writes logs. |
+| `config.py` | Runtime settings for model names, scene range, iteration budgets, timeouts, and active agents. |
+| `AgentClass.py` | Adapters for OpenAI, OpenRouter, Anthropic, Gemini, and Together-hosted models. |
+| `Experiment.py` | Runs the agent-simulator loop, extracts JSON tool calls, executes tools, and grades answers. |
+| `Scene.py` | Loads scene JSON/XML pairs and builds prompts with only the visible, permitted scene attributes. |
+| `Simulator.py` | MuJoCo wrapper that exposes physics tools such as stepping, force application, state queries, and answer submission. |
+| `Data.py` | Computes per-run metrics and writes structured summaries. |
+| `Scenes/SceneN/` | Canonical benchmark scenes. Each folder contains `sceneN.json` and `sceneN.xml`. |
+| `TestResults/` | Camera-ready experiment logs, normalized iteration buckets, supplemental runs, and manual grading summaries. |
+| `XMLFileCreation/` | Generated XML variants from earlier scene-construction workflows. |
+| `OldScenes/` | Archived pre-migration scene material retained for provenance. |
+| `local_tools/` | Local maintenance scripts such as answer validation and old-scene migration. This folder is ignored and should not be committed. |
 
-The system consists of five main components:
+## Scene Format
 
-#### 1. **main.py** - Entry Point
-- Orchestrates scene execution
-- Manages scene iteration
-- Aggregates results to JSON
+Each canonical scene has:
 
-#### 2. **Experimental.py** - Experiment Orchestrator
-- Manages LLM-simulator interaction loop
-- Extracts and executes tool calls from LLM responses
-- Validates answers against ground truth
-- Generates experiment logs
+| File | Contents |
+| --- | --- |
+| `sceneN.json` | Metadata, task prompt, numeric answer, object list, and per-object visibility permissions. |
+| `sceneN.xml` | MuJoCo world definition used by the simulator. |
 
-**Key Methods:**
-- `run_experiment()`: Main loop orchestrating LLM-simulator interaction
-- `execute_tool_calls()`: Dynamic tool execution
-- `extract_json_response()`: JSON extraction from LLM text
+Answers are stored as JSON numbers or lists of numbers. Classification and comparison tasks map concepts to numeric codes in the task text, so the final answer remains machine-gradable.
 
-#### 3. **Scene.py** - Scene Management & Prompt Generation
-- Loads scene metadata, objects, and permissions from JSON
-- Generates comprehensive LLM prompts
-- Provides ground truth answers
+Scene descriptions should reveal enough context for a model to decide what to test, but not enough to bypass experimentation. Physical constants or object attributes are exposed only through the scene permissions and simulator tools.
 
-**Key Methods:**
-- `__init__()`: Loads scene from JSON
-- `generate_prompt()`: Creates comprehensive LLM prompt (5-10 KB)
-- `get_correct_answer()`: Returns ground truth from JSON
+## Workflow
 
-#### 4. **Simulator.py** - MuJoCo Physics Wrapper
-- Wraps MuJoCo physics engine with high-level tools
-- Provides 19 physics manipulation and query tools
-- Manages simulation state and time
-- Renders visualization via passive viewer
-
-**Key Methods:**
-- `step(duration)`: Advance simulation by duration seconds
-- `move_object()`: Set absolute position
-- `apply_force()`: Apply force to object
-- `get_velocity()`: Get velocity vector
-- `get_position()`: Get position and time
-- And 14 more tools...
-
-#### 5. **OpenAIAgent.py** - LLM Interaction
-- Simple wrapper for OpenAI ChatCompletion API
-- Maintains full conversation history
-- Uses GPT-4o model
-
-**Key Methods:**
-- `interact(user_input)`: Send message and receive response
-- `get_context()`: Returns full conversation history
-- `clear_context()`: Resets to just system prompt
-
-### Data Flow
-
-```
-JSON Scene File (scene{N}.json, scene{N}.xml)
-    ↓
-Scene.__init__() loads metadata, objects, permissions
-    ↓
-Scene.generate_prompt() creates comprehensive LLM prompt
-    ↓
-OpenAIAgent.interact(prompt) → LLM response (reasoning + JSON tools)
-    ↓
-Experimental.extract_json_response() → Validated JSON array
-    ↓
-Experimental.execute_tool_calls() → Dynamic function invocation
-    ↓
-Simulator methods execute → Physics state changes
-    ↓
-Results dict {tool, parameters, result, sim_time}
-    ↓
-Check if "answer" tool called → Validate against ground truth
-    ↓
-If no answer: Feed results back to LLM for next iteration
-If answer: Terminate and return experiment results
-    ↓
-Log to experimentslog_{scene_id}_{timestamp}.txt
-Aggregate to aggregated_results.json
+```mermaid
+flowchart TD
+    A["config.py selects agents, scenes, and iterations"] --> B["main.py initializes an agent"]
+    B --> C["Experiment creates Scene and Simulator"]
+    C --> D["Scene reads sceneN.json and sceneN.xml"]
+    D --> E["Scene.generate_prompt exposes permitted task details"]
+    E --> F["Agent returns JSON tool calls"]
+    F --> G["Experiment.execute_tool_calls dispatches to Simulator"]
+    G --> H["Simulator advances/query MuJoCo state"]
+    H --> I{"answer tool called?"}
+    I -- "No" --> F
+    I -- "Yes" --> J["Experiment compares numeric answer with scene JSON"]
+    J --> K["Data/TestResults write logs and summaries"]
 ```
 
-## Usage
+## Results
 
-### Scene Structure
+The table below reports manually verified accuracy percentages from the provided grading spreadsheet export.
 
-Scenes are located in `Scenes/Scene{N}/`:
-- `scene{N}.json` - Metadata, objects, permissions, ground truth answer
-- `scene{N}.xml` - MuJoCo XML physics definition
+| Iterations | Kimi K2.5 | GLM 5 | DeepSeek R1 | Qwen 3.5 | GPT-5.4 | Gemini 3.0/3.5 | Claude Opus 4.6 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 5 | 27.6 | 46.7 | 41.9 | 26.7 | 47.6 | 29.5 | 69.5 |
+| 10 | 37.1 | 33.3 | 51.4 | 24.8 | 44.8 | 50.5 | 55.2 |
+| 15 | 46.7 | 48.6 | 50.5 | 35.2 | 47.6 | 54.3 | 52.4 |
+| 20 | 56.2 | 48.6 | 53.3 | 27.6 | 34.3 | 66.7 | 50.5 |
 
-### Scene JSON Format
+The machine-readable version is stored at `TestResults/manual_grading_summary.csv`.
 
-```json
-{
-  "metadata": {
-    "scene_name": "Human-readable title",
-    "task": "Detailed problem description for LLM",
-    "problem_type": "comparison|computation|boolean"
-  },
-  "answer": "Ground truth answer (string or number)",
-  "expected_behavior": "How LLM should approach the problem",
-  "reasoning": "Physics principle explanation",
-  "number_of_objects": "Integer count as string",
-  "objects": {
-    "object_1": {"name": "ball", "object_id": "1"},
-    "object_2": {"name": "ground", "object_id": "2"}
-  },
-  "object_permissions": {
-    "object_1_permissions": {
-      "type": true,
-      "mass": true,
-      "vel": true,
-      ...
-    }
-  }
+`TestResults/` uses a normalized, camera-ready layout. Standard benchmark runs are organized as `iterations_XX/<model>/scene_###/`, where `XX` is `05`, `10`, `15`, or `20`; model folders use lower snake-case names such as `kimi_k2_5`, `glm_5`, `deepseek_r1`, `qwen_3_5`, `gpt_5_5`, and `anthropic_opus_4_7`.
+
+| Path | Contents |
+| --- | --- |
+| `TestResults/iterations_05/` | Five-iteration benchmark logs by model and canonical scene. |
+| `TestResults/iterations_10/` | Ten-iteration benchmark logs by model and canonical scene. |
+| `TestResults/iterations_15/` | Fifteen-iteration benchmark logs by model and canonical scene. |
+| `TestResults/iterations_20/` | Twenty-iteration benchmark logs by model and canonical scene. |
+| `TestResults/unbucketed_runs/` | Imported runs without a reliable iteration-bucket label. |
+| `TestResults/legacy_out_of_range/` | Preserved pre-renumbering logs; legacy scene IDs `152-156` correspond to current scenes `102-106`. |
+| `TestResults/supplemental_results/` | Supplemental manually provided aggregate logs, renamed by model and iteration budget. |
+| `TestResults/manual_grading_summary.csv` | Machine-readable version of the manually verified accuracy table. |
+
+Historical summaries whose `Correct Answer:` field contained labels, formulas, or prose were reconciled against the canonical numeric answers in `Scenes/Scene*/scene*.json`.
+
+Additional result sets imported from the current repository branch include normalized `gpt_5_5`, `anthropic_opus_4_7`, and `supplemental_results` folders. The `gpt_5_5` summaries used the older `1-105` scene numbering, so their answer references were normalized to the current `7-111` canonical scene range.
+
+Because `TestResults/` is ignored by default for local runs, use a forced add when preparing the camera-ready commit:
+
+```bash
+git add -f TestResults/iterations_05 TestResults/iterations_10 TestResults/iterations_15 TestResults/iterations_20
+git add -f TestResults/unbucketed_runs TestResults/legacy_out_of_range TestResults/supplemental_results
+git add -f TestResults/manual_grading_summary.csv
+git add -u TestResults README.md
+```
+
+## Local-Only Maintenance Scripts
+
+`migrate_old_scenes.py` and `validate_answers.py` are kept in `local_tools/` so they remain available for maintainers without being pushed as part of the camera-ready repository. To make sure they are removed from Git tracking while keeping local copies, run:
+
+```bash
+git rm --cached migrate_old_scenes.py validate_answers.py
+git add .gitignore README.md
+git status --short
+```
+
+The `local_tools/` entry in `.gitignore` prevents the moved copies from being added later.
+
+## License
+
+PhysMent is released under the MIT License. See `LICENSE`.
+
+## Citation
+
+```bibtex
+@misc{physment2026,
+  author       = {Saravalle, S. and PhysMent contributors},
+  title        = {PhysMent: An Interactive Physics Reasoning Benchmark},
+  year         = {2026},
+  howpublished = {\url{https://github.com/<owner>/<repo>}},
+  note         = {MIT License}
 }
 ```
-
-### Problem Types
-
-1. **comparison**: Which object satisfies the task?
-   - Answer format: Object ID(s) as string or comma-separated
-   - Special case: "0" if all objects satisfy
-
-2. **computation**: Calculate a numerical result
-   - Answer format: Number rounded to nearest thousandths
-
-3. **boolean**: True/false question
-   - Answer format: "0" for true, "1" for false
-
-### Tool Call Format
-
-LLM must return tool calls as JSON array:
-
-```json
-[
-  {"tool": "move_object", "parameters": {"object_id": "object_1", "x": 0, "y": 10, "z": 0}},
-  {"tool": "step", "parameters": {"duration": 0.5}},
-  {"tool": "get_velocity", "parameters": {"object_id": "object_1"}},
-  {"tool": "answer", "parameters": {"answer": "4.9"}}
-]
-```
-
-### Available Tools
-
-**Manipulation Tools:**
-- `move_object(object_id, x, y, z)`: Set absolute position
-- `apply_force(object_id, force_vector)`: Apply force
-- `apply_torque(object_id, torque_vector)`: Apply torque
-- `set_velocity(object_id, velocity_vector)`: Set velocity
-- `change_position(object_id, dx, dy, dz, in_world_frame)`: Relative movement
-
-**Time Control:**
-- `step(duration)`: Advance simulation by duration seconds
-
-**Query Tools:**
-- `get_position(object_id)`: Returns position tuple + simulation time
-- `get_velocity(object_id)`: Returns velocity vector [vx, vy, vz]
-- `get_displacement(object_id)`: Distance from start position
-- `get_parameters(object_id)`: Returns mass, bounding_box, type
-- `detect_collision(obj1_id, obj2_id)`: Checks contact data
-- `get_kinetic_energy(object_id, mass)`: KE = 0.5 * m * v²
-- `get_potential_energy(object_id, mass, gravity)`: PE = m * g * h
-- `get_momentum(object_id, mass)`: p = m * v
-- `get_torque(object_id)`: Returns torque
-- `get_center_of_mass()`: Scene center of mass
-- `get_angular_momentum(object_id, mass)`: L = m * ω
-- `quat_to_rot_matrix(q)`: Quaternion to 3x3 rotation matrix
-- `compute_force(object_id, mass)`: F = ma calculation
-
-**Answer Submission:**
-- `answer(answer)`: Submit final answer for validation
-
-## Known Issues and Bugs
-
-### Scene Changes
-
-- **Scene 110 (replaced):** The original Scene 110 ("Horizontal Launch and Velocity Calculation") was a duplicate of Scene 102 with a wrong ground-truth answer (69.4 vs the correct 62.8). It was removed and replaced by the former Scene 112 ("Collision Detection and Torque"). The scene range is now 7–111.

@@ -1,3 +1,5 @@
+"""MuJoCo simulator wrapper exposing physics tools to benchmark agents."""
+
 from __future__ import annotations
 import mujoco
 import mujoco.viewer
@@ -336,6 +338,7 @@ class Simulator:
         try:
             # Find the window by title (you may need to adjust the title if it differs)
             def enum_windows_callback(hwnd, result):
+                """Collect visible MuJoCo viewer windows during discovery."""
                 title = win32gui.GetWindowText(hwnd)
                 if "MuJoCo" in title:
                     result.append(hwnd)

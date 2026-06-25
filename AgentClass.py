@@ -1,3 +1,5 @@
+"""LLM agent adapters used by the PhysMent experiment runner."""
+
 import os
 from dotenv import load_dotenv
 import config
@@ -6,6 +8,7 @@ load_dotenv()
 
 
 class OpenAIAgent:
+    """Adapter for OpenAI chat-completion models."""
     def __init__(
         self,
         model: str = config.OPENAI_MODEL,
@@ -20,6 +23,7 @@ Here are some important guidelines for interacting with the environment:
 
 Submit your answer only when confident, using the answer function.""",
     ):
+        """Initialize the instance."""
         import openai
         import backoff
         from openai.types.chat import (
@@ -41,10 +45,12 @@ Submit your answer only when confident, using the answer function.""",
         ] = [{"role": "system", "content": system_prompt}]
 
     def interact(self, user_input):
+        """Send user input to the model and return its response."""
         openai = self._openai
 
         @self._backoff.on_exception(self._backoff.expo, openai.RateLimitError)
         def _call():
+            """Call the model API with retry handling."""
             self.context.append({"role": "user", "content": user_input})
             response = openai.chat.completions.create(
                 model=self.model,
@@ -59,6 +65,7 @@ Submit your answer only when confident, using the answer function.""",
 
 
 class OpenRouterAgent:
+    """Adapter for OpenRouter-hosted chat-completion models."""
     def __init__(
         self,
         model: str = config.OPENROUTER_MODEL,
@@ -73,6 +80,7 @@ Here are some important guidelines for interacting with the environment:
 
 Submit your answer only when confident, using the answer function.""",
     ):
+        """Initialize the instance."""
         import openai
         import backoff
         from openai.types.chat import (
@@ -97,10 +105,12 @@ Submit your answer only when confident, using the answer function.""",
         ] = [{"role": "system", "content": system_prompt}]
 
     def interact(self, user_input):
+        """Send user input to the model and return its response."""
         openai = self._openai
 
         @self._backoff.on_exception(self._backoff.expo, openai.RateLimitError)
         def _call():
+            """Call the model API with retry handling."""
             self.context.append({"role": "user", "content": user_input})
             response = self._client.chat.completions.create(
                 model=self.model,
@@ -116,6 +126,7 @@ Submit your answer only when confident, using the answer function.""",
 
 
 class AnthropicAgent:
+    """Adapter for Anthropic Claude message models."""
     def __init__(
         self,
         model: str = config.ANTHROPIC_MODEL,
@@ -130,6 +141,7 @@ Here are some important guidelines for interacting with the environment:
 
 Submit your answer only when confident, using the answer function.""",
     ):
+        """Initialize the instance."""
         import anthropic
 
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
@@ -139,6 +151,7 @@ Submit your answer only when confident, using the answer function.""",
         self.context = []
 
     def interact(self, user_input):
+        """Send user input to the model and return its response."""
         msg = self.client.messages.create(
             model=self.model,
             system=self.system_prompt,
@@ -152,6 +165,7 @@ Submit your answer only when confident, using the answer function.""",
 
 
 class GeminiAgent:
+    """Adapter for Google Gemini models."""
     def __init__(
         self,
         model_name: str = config.GEMINI_MODEL,
@@ -166,6 +180,7 @@ Here are some important guidelines for interacting with the environment:
 
 Submit your answer only when confident, using the answer function.""",
     ):
+        """Initialize the instance."""
         import google.generativeai as genai
         from google.generativeai.generative_models import GenerativeModel
         from google.generativeai.client import configure
@@ -177,6 +192,7 @@ Submit your answer only when confident, using the answer function.""",
         self.context = []
 
     def interact(self, user_input):
+        """Send user input to the model and return its response."""
         prompt = "System: " + self.system_prompt + "\n"
         for msg in self.context:
             prompt += f"{msg['role'].capitalize()}: {msg['content']}\n"
@@ -195,7 +211,9 @@ Submit your answer only when confident, using the answer function.""",
 
 
 class BaseTogetherAgent:
+    """Shared adapter for Together-hosted chat models."""
     def __init__(self, api_key=None, model_name=None, system_prompt=None):
+        """Initialize the instance."""
         from together import Together
 
         self.api_key = api_key or os.getenv("TOGETHER_API_KEY")
@@ -217,6 +235,7 @@ Submit your answer only when confident, using the answer function."""
 
     def interact(self, user_input):
         # Compose messages for Together.ai chat
+        """Send user input to the model and return its response."""
         messages = (
             [{"role": "system", "content": self.system_prompt}]
             + self.context
@@ -244,7 +263,9 @@ Submit your answer only when confident, using the answer function."""
 
 
 class LlamaAgent(BaseTogetherAgent):
+    """Together adapter for the configured Llama model."""
     def __init__(self, api_key=None, system_prompt=None):
+        """Initialize the instance."""
         super().__init__(
             api_key=api_key,
             model_name="meta-llama/Llama-4-Scout-17B-16E-Instruct",
@@ -253,7 +274,9 @@ class LlamaAgent(BaseTogetherAgent):
 
 
 class GemmaAgent(BaseTogetherAgent):
+    """Together adapter for the configured Gemma model."""
     def __init__(self, api_key=None, system_prompt=None):
+        """Initialize the instance."""
         super().__init__(
             api_key=api_key,
             model_name="google/gemma-2-27b-it",
@@ -262,7 +285,9 @@ class GemmaAgent(BaseTogetherAgent):
 
 
 class DeepSeekAgent(BaseTogetherAgent):
+    """Together adapter for DeepSeek R1 with thinking-output handling."""
     def __init__(self, api_key=None, system_prompt=None):
+        """Initialize the instance."""
         super().__init__(
             api_key=api_key,
             model_name=config.DEEPSEEK_MODEL,
@@ -270,6 +295,7 @@ class DeepSeekAgent(BaseTogetherAgent):
         )
 
     def interact(self, user_input, _max_retries=3):
+        """Send user input to the model and return its response."""
         import re
 
         messages = (
@@ -338,7 +364,9 @@ class DeepSeekAgent(BaseTogetherAgent):
 
 
 class Llama3370BAgent(BaseTogetherAgent):
+    """Together adapter for Llama 3.3 70B."""
     def __init__(self, api_key=None, system_prompt=None):
+        """Initialize the instance."""
         super().__init__(
             api_key=api_key,
             model_name="meta-llama/Llama-3.3-70B-Instruct-Turbo",
@@ -347,7 +375,9 @@ class Llama3370BAgent(BaseTogetherAgent):
 
 
 class QwenAgent(BaseTogetherAgent):
+    """Together adapter for the configured Qwen model."""
     def __init__(self, api_key=None, system_prompt=None):
+        """Initialize the instance."""
         super().__init__(
             api_key=api_key,
             model_name=config.QWEN_MODEL,
@@ -356,7 +386,9 @@ class QwenAgent(BaseTogetherAgent):
 
 
 class MixtralAgent(BaseTogetherAgent):
+    """Together adapter for the configured Mixtral model."""
     def __init__(self, api_key=None, system_prompt=None):
+        """Initialize the instance."""
         super().__init__(
             api_key=api_key,
             model_name="mistralai/Mixtral-8x7B-Instruct-v0.1",
@@ -365,7 +397,9 @@ class MixtralAgent(BaseTogetherAgent):
 
 
 class KimiAgent(BaseTogetherAgent):
+    """Together adapter for the configured Kimi model."""
     def __init__(self, api_key=None, model_name=None, system_prompt=None):
+        """Initialize the instance."""
         super().__init__(
             api_key=api_key,
             model_name=config.KIMI_MODEL,
@@ -374,7 +408,9 @@ class KimiAgent(BaseTogetherAgent):
 
 
 class GLMAgent(BaseTogetherAgent):
+    """Together adapter for the configured GLM model."""
     def __init__(self, api_key=None, model_name=None, system_prompt=None):
+        """Initialize the instance."""
         super().__init__(
             api_key=api_key,
             model_name=config.GLM_MODEL,

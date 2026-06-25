@@ -1,3 +1,5 @@
+"""Scene loading, prompt construction, and answer access for PhysMent tasks."""
+
 import json
 import os
 import random
@@ -76,7 +78,7 @@ class Scene:
         self.object_permissions = cleaned_permissions
         self.scene_data = scene_json_data
         self.data = scene_json_data["metadata"]
-        self.scene_desc = self.data.get("scene_name", "")
+        self.scene_desc = self.data.get("description") or self.data.get("scene_name", "")
         self.scene_task = self.data.get("task", "")
         self.problem_type = self.data.get("problem_type", "")
         self.objects = scene_json_data["objects"]

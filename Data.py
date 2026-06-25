@@ -1,3 +1,5 @@
+"""Experiment metric aggregation and result-summary helpers."""
+
 import os
 import json
 from Scene import Scene

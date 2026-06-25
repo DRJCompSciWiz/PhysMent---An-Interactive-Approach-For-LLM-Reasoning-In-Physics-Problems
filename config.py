@@ -1,3 +1,5 @@
+"""Runtime configuration for PhysMent benchmark experiments."""
+
 # NOTE: Networking timeout, set genously plz...I'm too lazy to implement async timeouts on here
 timeout_limit = 600  # for context 600 = 10 min before exp gives up and moves on
 

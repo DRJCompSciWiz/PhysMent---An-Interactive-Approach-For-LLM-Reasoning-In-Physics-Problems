@@ -1,3 +1,5 @@
+"""Experiment orchestration for the LLM-simulator interaction loop."""
+
 import json
 import os
 import time
@@ -17,6 +19,7 @@ load_dotenv()
 api_key = os.getenv('OPENAI_API_KEY')
 
 class Experiment:
+    """Coordinate one scene, simulator, and LLM agent run."""
     def __init__(self, scene_id: str, agent, max_iterations: int, enable_python_tool: bool = False, agent_label: str | None = None):
         """
         Initialize the Experimental class with a Scene ID and set up the necessary components.
@@ -76,6 +79,7 @@ class Experiment:
         }
 
     def python_tool(self, code: str):
+        """Evaluate a small Python expression for optional computation support."""
         try:
             # Using eval() to execute the Python code
             result = eval(code)
@@ -257,6 +261,7 @@ class Experiment:
 
         """
         def _extract_fenced_blocks(text: str) -> list[str]:
+            """Extract fenced code blocks from model output."""
             blocks = []
             start = 0
             while True:
@@ -275,6 +280,7 @@ class Experiment:
             return blocks
 
         def _extract_json_candidate(text: str, start_idx: int) -> str | None:
+            """Return a balanced JSON object or array candidate from text."""
             start = None
             stack = []
             in_string = False
