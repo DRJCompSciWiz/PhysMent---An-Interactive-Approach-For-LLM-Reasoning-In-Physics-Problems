@@ -92,14 +92,14 @@ flowchart TD
 
 ## Results
 
-The table below reports manually verified accuracy percentages from the provided grading spreadsheet export.
+The table below reports overall accuracy percentages on PhysMent across iteration budgets, matching the results reported in the paper.
 
-| Iterations | Kimi K2.5 | GLM 5 | DeepSeek R1 | Qwen 3.5 | GPT-5.4 | Gemini 3.0/3.5 | Claude Opus 4.6 |
+| Iterations | Kimi K2.5 | GLM 5 | DeepSeek R1 | Qwen 3.5 | GPT-5.5 | Gemini 3.1 Pro | Claude Opus 4.7 |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 5 | 27.6 | 46.7 | 41.9 | 26.7 | 47.6 | 29.5 | 69.5 |
-| 10 | 37.1 | 33.3 | 51.4 | 24.8 | 44.8 | 50.5 | 55.2 |
-| 15 | 46.7 | 48.6 | 50.5 | 35.2 | 47.6 | 54.3 | 52.4 |
-| 20 | 56.2 | 48.6 | 53.3 | 27.6 | 34.3 | 66.7 | 50.5 |
+| 5 | 27.4 | 46.7 | 42.3 | 26.7 | 51.4 | 29.5 | 40.5 |
+| 10 | 37.1 | 37.7 | 51.4 | 24.8 | 49.5 | 50.4 | 39.6 |
+| 15 | 46.7 | 48.6 | 48.6 | 35.2 | 48.6 | 51.4 | 42.3 |
+| 20 | 56.2 | 48.6 | 53.3 | 27.6 | 50.5 | 66.7 | 40.5 |
 
 The machine-readable version is stored at `TestResults/manual_grading_summary.csv`.
 
