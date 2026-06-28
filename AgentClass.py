@@ -181,7 +181,6 @@ Here are some important guidelines for interacting with the environment:
 Submit your answer only when confident, using the answer function.""",
     ):
         """Initialize the instance."""
-        import google.generativeai as genai
         from google.generativeai.generative_models import GenerativeModel
         from google.generativeai.client import configure
 

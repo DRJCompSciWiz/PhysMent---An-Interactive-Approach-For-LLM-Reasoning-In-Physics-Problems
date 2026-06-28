@@ -1,6 +1,5 @@
 """Command-line entry point for running PhysMent benchmark experiments."""
 
-from inspect import Traceback
 import os
 import json
 import logging
@@ -22,11 +21,9 @@ from AgentClass import (
 from Experiment import Experiment
 from Data import Data
 import argparse
-import random
 import threading
 import config
 from rich.progress import Progress
-import time
 
 
 class JsonLogger:
@@ -99,9 +96,9 @@ def initialize_agent(agent_type: str):
     """
     Initialize the correct agent based on the provided agent_type string.
     """
-    # OpenAI Models
-    # ridiculous implementation of agent switching...preserving this for LEGACY code purposes
-    # NOTE: FOR ALL NEW EXPERIMENTS, PLEASE JUST PUT "XXXAgent" in the [] and change the model via the config
+    # Legacy agent-switching map, kept for backward compatibility. For new
+    # experiments, add the bare "<XXX>Agent" class name to config.agents and
+    # set the model in config.py rather than adding a branch here.
     if agent_type == "OpenAIAgent":
         return OpenAIAgent()
     elif agent_type == "OpenAIAgentGPT4o":
@@ -186,14 +183,13 @@ def main():
     and saves them to a JSON file.
     """
     parser = argparse.ArgumentParser()
-    # TODO: This enable_python_tool is randomly set twice (once here once in Scene). WTF?? Fix this. For now, fixing this to False
     parser.add_argument(
         "--enable-python-tool",
         action="store_true",
         help="Enable the Python evaluation tool",
     )
     args = parser.parse_args()
-    # args.enable_python_tool = random.choice([True, False])
+    # The Python evaluation tool is disabled for benchmark runs.
     args.enable_python_tool = False
     if args.enable_python_tool:
         print("✅ Python tool enabled")
@@ -215,9 +211,6 @@ def main():
     base_dir = os.path.join(os.getcwd(), "TestResults")
     if not os.path.exists(base_dir):
         os.makedirs(base_dir)
-
-    # Define ablation methods (kept for future experimentation)
-    methods = ["zero_shot", "one_shot", "one_shot_cot", "few_shot", "few_shot_cot"]
 
     for agent_type in agent_types:
         for iteration in iterations:
@@ -249,7 +242,7 @@ def main():
                             scene.set_prompt_method("zero_shot")
                             # To iterate across all methods in the future, replace the single call
                             # above with a loop like this and adjust logging/output paths if needed:
-                            # for method in methods:
+                            # for method in config.prompting_methods:
                             #     scene.set_prompt_method(method)
                             #     results = experiment.run_experiment()
                             scene_number = scene.scene_number
@@ -302,7 +295,7 @@ def main():
                                 results=results,
                             )
                             data.summarize_scenes()
-                        except Exception as e:
+                        except Exception:
                             print(
                                 f"Error with loading scene {scene_id}, skipping this scene for now..."
                             )

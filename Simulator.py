@@ -4,14 +4,9 @@ from __future__ import annotations
 import mujoco
 import mujoco.viewer
 import numpy as np
-import time
 import os
 import xml.etree.ElementTree as ET
 import logging
-# import pywin 
-# import win32gui
-# import win32con
-from typing import Dict, Any, Optional
 
 # Configure logging
 logging.basicConfig(
@@ -366,7 +361,6 @@ class Simulator:
             dict: A dictionary containing the position of the object.
         """
         try:
-            # Ensure object_id is a string
             object_id = str(object_id)
             
             # Get body ID based on the object_id
@@ -402,8 +396,8 @@ class Simulator:
             dict: The new position of the object.
         """
         try:
-            object_id = str(object_id)  # Ensure object_id is a string
-            body_id = self.get_body_id(object_id)  # Get body ID based on object_id
+            object_id = str(object_id)
+            self.get_body_id(object_id)  # Validate the object exists (raises if not found)
             joint_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, f"{object_id}_joint") # type: ignore
             if joint_id == -1:
                 return {"error": f"No joint named {object_id}_joint"}
@@ -432,7 +426,7 @@ class Simulator:
             dict: A dictionary containing the displacement of the object.
         """
         try:
-            object_id = str(object_id)  # Ensure object_id is a string
+            object_id = str(object_id)
             body_id = self.get_body_id(object_id)  # Get body ID based on object_id
             
             # Ensure xpos and start_pos are numpy arrays for element-wise operations
@@ -465,8 +459,8 @@ class Simulator:
             dict: A dictionary containing the new position of the object.
         """
         try:
-            object_id = str(object_id)  # Ensure object_id is a string
-            body_id = self.get_body_id(object_id)  # Get body ID based on the object name
+            object_id = str(object_id)
+            self.get_body_id(object_id)  # Validate the object exists (raises if not found)
 
             # Get the joint corresponding to the object and set its position
             joint_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, f"{object_id}_joint")  # type: ignore
@@ -640,7 +634,7 @@ class Simulator:
             dict: A dictionary indicating the status of the operation and the applied force.
         """
         try:
-            object_id = str(object_id)  # Ensure object_id is a string
+            object_id = str(object_id)
             body_id = self.get_body_id(object_id)  # Get the body ID based on object_id
             
             # Ensure the force_vector has exactly 3 elements (x, y, z components)
@@ -669,7 +663,7 @@ class Simulator:
             dict: A dictionary indicating the status of the operation and the applied torque.
         """
         try:
-            object_id = str(object_id)  # Ensure object_id is a string
+            object_id = str(object_id)
             body_id = self.get_body_id(object_id)  # Get the body ID based on object_id
             
             # Ensure the torque_vector has exactly 3 elements (torque around x, y, z axes)
@@ -698,7 +692,7 @@ class Simulator:
             dict: A dictionary containing the kinetic energy of the object.
         """
         try:
-            object_id = str(object_id)  # Ensure object_id is a string
+            object_id = str(object_id)
             
             # Get velocity of the object
             velocity = self.get_velocity(object_id)
@@ -732,7 +726,7 @@ class Simulator:
             dict: A dictionary containing the potential energy of the object.
         """
         try:
-            object_id = str(object_id)  # Ensure object_id is a string
+            object_id = str(object_id)
             
             # Get position of the object
             position = self.get_position(object_id)
@@ -802,7 +796,7 @@ class Simulator:
             dict: A dictionary containing the momentum of the object.
         """
         try:
-            object_id = str(object_id)  # Ensure object_id is a string
+            object_id = str(object_id)
             
             # Get the velocity of the object
             velocity = self.get_velocity(object_id)
@@ -987,7 +981,7 @@ class Simulator:
         body.set("pos", f"{pos[0]} {pos[1]} {pos[2]}")
         
         # Create geometry for the object
-        geom = ET.SubElement(body, "geom", type="sphere", size=str(density), rgba=" ".join(map(str, rgba)))
+        ET.SubElement(body, "geom", type="sphere", size=str(density), rgba=" ".join(map(str, rgba)))
         
         # Add the new body tag to the XML
         worldbody.append(body)

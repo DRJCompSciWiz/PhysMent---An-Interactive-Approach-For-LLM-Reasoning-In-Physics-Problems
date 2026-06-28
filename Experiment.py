@@ -7,7 +7,7 @@ import logging
 from dotenv import load_dotenv
 from Simulator import Simulator
 from Scene import Scene
-from AgentClass import OpenAIAgent, OpenRouterAgent, LlamaAgent, GemmaAgent, GeminiAgent, AnthropicAgent, DeepSeekAgent, BaseTogetherAgent, KimiAgent, GLMAgent, QwenAgent, MixtralAgent, Llama3370BAgent
+from AgentClass import OpenAIAgent, OpenRouterAgent, LlamaAgent, GemmaAgent, GeminiAgent, AnthropicAgent, DeepSeekAgent, BaseTogetherAgent
 from typing import Any, Dict, List
 from datetime import datetime
 import re
@@ -219,7 +219,6 @@ class Experiment:
             tool = call['tool']
             params = call['parameters']
             result = None
-            has_error = False
 
             try:
                 # Attempt to find and execute the tool if it exists in the mapping
@@ -234,7 +233,6 @@ class Experiment:
                 logging.error(f"Exception during '{tool}': {str(e)}")
                 result = {"error": str(e)}
                 failed_calls += 1
-                has_error = True
 
             # Append the result, including the tool name, parameters, and result to the aggregated results
             aggregated_results.append({

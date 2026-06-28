@@ -2,12 +2,9 @@
 
 import json
 import os
-import random
-import numpy as np
 from Simulator import Simulator
 import xml.etree.ElementTree as ET
 import re
-from typing import Dict, Any
 
 class Scene:
     """
